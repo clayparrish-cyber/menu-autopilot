@@ -1,19 +1,14 @@
 // lib/report/types.ts
 
-export type Confidence = "HIGH" | "MEDIUM" | "LOW";
+// Import and re-export shared types from utils
+import type {
+  Quadrant,
+  ActionLabel,
+  Confidence,
+  DataQualityBadge,
+} from "../utils";
 
-export type ActionLabel =
-  | "KEEP"
-  | "PROMOTE"
-  | "REPRICE"
-  | "REPOSITION"
-  | "REWORK_COST"
-  | "REMOVE"
-  | "KEEP_ANCHOR";
-
-export type Quadrant = "STAR" | "PLOWHORSE" | "PUZZLE" | "DOG";
-
-export type DataQualityBadge = "GOOD" | "MIXED" | "REVIEW";
+export type { Quadrant, ActionLabel, Confidence, DataQualityBadge };
 
 export interface ReportLinks {
   reportUrl: string;

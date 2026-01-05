@@ -1,31 +1,20 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAuthContext, handleApiError } from "@/lib/api";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const ctx = await getAuthContext();
+    if (ctx instanceof NextResponse) return ctx;
 
-    if (!session?.user?.id || !session.user.accountId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const account = await prisma.account.findUnique({
-      where: { id: session.user.accountId },
-      include: { locations: true },
-    });
-
-    if (!account || account.locations.length === 0) {
+    if (ctx.locationIds.length === 0) {
       return NextResponse.json({ reports: [] });
     }
-
-    const locationIds = account.locations.map((l) => l.id);
 
     const reports = await prisma.report.findMany({
       where: {
         week: {
-          locationId: { in: locationIds },
+          locationId: { in: ctx.locationIds },
         },
       },
       include: {
@@ -57,10 +46,6 @@ export async function GET() {
 
     return NextResponse.json({ reports: formattedReports });
   } catch (error) {
-    console.error("Reports fetch error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Reports fetch error");
   }
 }

@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAuth, handleApiError, errorResponse } from "@/lib/api";
 import { z } from "zod";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id || !session.user.accountId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await getAuth();
+    if (auth instanceof NextResponse) return auth;
 
     const account = await prisma.account.findUnique({
-      where: { id: session.user.accountId },
+      where: { id: auth.accountId },
       select: {
         targetFoodCostPct: true,
         minQtyThreshold: true,
@@ -24,16 +20,12 @@ export async function GET() {
     });
 
     if (!account) {
-      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+      return errorResponse("Account not found", 404);
     }
 
     return NextResponse.json(account);
   } catch (error) {
-    console.error("Settings fetch error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Settings fetch error");
   }
 }
 
@@ -47,24 +39,15 @@ const settingsSchema = z.object({
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id || !session.user.accountId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await getAuth();
+    if (auth instanceof NextResponse) return auth;
 
     const body = await req.json();
     const data = settingsSchema.parse(body);
 
     await prisma.account.update({
-      where: { id: session.user.accountId },
-      data: {
-        targetFoodCostPct: data.targetFoodCostPct,
-        minQtyThreshold: data.minQtyThreshold,
-        popularityThreshold: data.popularityThreshold,
-        marginThreshold: data.marginThreshold,
-        allowPremiumPricing: data.allowPremiumPricing,
-      },
+      where: { id: auth.accountId },
+      data,
     });
 
     return NextResponse.json({ success: true });
@@ -75,11 +58,6 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.error("Settings update error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Settings update error");
   }
 }

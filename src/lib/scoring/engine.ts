@@ -8,15 +8,9 @@
  * - Generate recommended actions with guardrails
  */
 
-export type Quadrant = "STAR" | "PLOWHORSE" | "PUZZLE" | "DOG";
-export type RecommendedAction =
-  | "KEEP"
-  | "PROMOTE"
-  | "REPRICE"
-  | "REPOSITION"
-  | "REWORK"
-  | "REMOVE";
-export type Confidence = "HIGH" | "MEDIUM" | "LOW";
+import { round, groupByQuadrant } from "../utils";
+import type { Quadrant, Confidence, RecommendedAction } from "../utils";
+export type { Quadrant, Confidence, RecommendedAction };
 
 export interface ItemInput {
   itemId: string;
@@ -234,9 +228,9 @@ function calculateSuggestedPrice(
   }
 
   return {
-    suggestedPrice: Math.round(suggestedPrice * 100) / 100,
-    changeAmt: Math.round(priceChange * 100) / 100,
-    changePct: Math.round((priceChange / currentPrice) * 10000) / 100,
+    suggestedPrice: round(suggestedPrice),
+    changeAmt: round(priceChange),
+    changePct: round((priceChange / currentPrice) * 100),
   };
 }
 
@@ -461,13 +455,13 @@ export function scoreItems(
       netSales: item.netSales,
       unitFoodCost: item.unitFoodCost,
       isAnchor: item.isAnchor,
-      avgPrice: Math.round(item.avgPrice * 100) / 100,
-      unitMargin: Math.round(item.unitMargin * 100) / 100,
-      totalMargin: Math.round(item.totalMargin * 100) / 100,
-      foodCostPct: Math.round(item.foodCostPct * 100) / 100,
-      popularityPercentile: Math.round(popularityPercentile * 100) / 100,
-      marginPercentile: Math.round(marginPercentile * 100) / 100,
-      profitPercentile: Math.round(profitPercentile * 100) / 100,
+      avgPrice: round(item.avgPrice),
+      unitMargin: round(item.unitMargin),
+      totalMargin: round(item.totalMargin),
+      foodCostPct: round(item.foodCostPct),
+      popularityPercentile: round(popularityPercentile),
+      marginPercentile: round(marginPercentile),
+      profitPercentile: round(profitPercentile),
       quadrant,
       recommendedAction,
       suggestedPrice,
@@ -475,7 +469,7 @@ export function scoreItems(
       priceChangePct,
       confidence,
       explanation,
-      estimatedImpact: Math.round(estimatedImpact * 100) / 100,
+      estimatedImpact: round(estimatedImpact),
     };
   });
 
@@ -514,43 +508,34 @@ export function generateScoringResult(items: ItemMetrics[]): ScoringResult {
       ? items.reduce((sum, i) => sum + i.foodCostPct, 0) / items.length
       : 0;
 
-  // Categorize by quadrant
-  const stars = items.filter((i) => i.quadrant === "STAR");
-  const plowhorses = items.filter((i) => i.quadrant === "PLOWHORSE");
-  const puzzles = items.filter((i) => i.quadrant === "PUZZLE");
-  const dogs = items.filter((i) => i.quadrant === "DOG");
-
-  // Top 10 actions by impact
-  const topActions = items.slice(0, 10);
+  const byQuadrant = groupByQuadrant(items);
 
   // Margin leaks: plowhorses with highest volume
-  const marginLeaks = plowhorses
+  const marginLeaks = [...byQuadrant.PLOWHORSE]
     .sort((a, b) => b.quantitySold - a.quantitySold)
     .slice(0, 3);
 
-  // Easy wins: high margin items that just need promotion
-  const easyWins = puzzles
+  // Easy wins: high margin puzzles
+  const easyWins = byQuadrant.PUZZLE
     .filter((i) => i.confidence === "HIGH" || i.confidence === "MEDIUM")
     .sort((a, b) => b.unitMargin - a.unitMargin)
     .slice(0, 3);
 
   // Watch items: low confidence items
-  const watchItems = items
-    .filter((i) => i.confidence === "LOW")
-    .slice(0, 3);
+  const watchItems = items.filter((i) => i.confidence === "LOW").slice(0, 3);
 
   return {
     items,
     summary: {
       totalItems: items.length,
-      stars: stars.length,
-      plowhorses: plowhorses.length,
-      puzzles: puzzles.length,
-      dogs: dogs.length,
-      totalRevenue: Math.round(totalRevenue * 100) / 100,
-      totalMargin: Math.round(totalMargin * 100) / 100,
-      avgFoodCostPct: Math.round(avgFoodCostPct * 100) / 100,
-      topActions,
+      stars: byQuadrant.STAR.length,
+      plowhorses: byQuadrant.PLOWHORSE.length,
+      puzzles: byQuadrant.PUZZLE.length,
+      dogs: byQuadrant.DOG.length,
+      totalRevenue: round(totalRevenue),
+      totalMargin: round(totalMargin),
+      avgFoodCostPct: round(avgFoodCostPct),
+      topActions: items.slice(0, 10),
       marginLeaks,
       easyWins,
       watchItems,

@@ -1,30 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAuthContext, handleApiError } from "@/lib/api";
 import { z } from "zod";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const ctx = await getAuthContext();
+    if (ctx instanceof NextResponse) return ctx;
 
-    if (!session?.user?.id || !session.user.accountId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const account = await prisma.account.findUnique({
-      where: { id: session.user.accountId },
-      include: { locations: true },
-    });
-
-    if (!account || account.locations.length === 0) {
+    if (ctx.locationIds.length === 0) {
       return NextResponse.json({ items: [] });
     }
 
-    const locationIds = account.locations.map((l) => l.id);
-
     const items = await prisma.item.findMany({
-      where: { locationId: { in: locationIds } },
+      where: { locationId: { in: ctx.locationIds } },
       include: {
         costOverrides: {
           orderBy: { effectiveDate: "desc" },
@@ -44,11 +33,7 @@ export async function GET() {
 
     return NextResponse.json({ items: formattedItems });
   } catch (error) {
-    console.error("Items fetch error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Items fetch error");
   }
 }
 
@@ -64,26 +49,13 @@ const updateSchema = z.object({
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id || !session.user.accountId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const ctx = await getAuthContext();
+    if (ctx instanceof NextResponse) return ctx;
 
     const body = await req.json();
     const { items } = updateSchema.parse(body);
 
-    // Verify items belong to user's locations
-    const account = await prisma.account.findUnique({
-      where: { id: session.user.accountId },
-      include: { locations: true },
-    });
-
-    if (!account) {
-      return NextResponse.json({ error: "Account not found" }, { status: 404 });
-    }
-
-    const locationIds = new Set(account.locations.map((l) => l.id));
+    const locationIds = new Set(ctx.locationIds);
 
     // Process updates in transaction
     await prisma.$transaction(async (tx) => {
@@ -124,11 +96,6 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.error("Items update error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Items update error");
   }
 }

@@ -6,12 +6,10 @@ import type {
   EasyWin,
   WatchItem,
   DataQuality,
-  DataQualityBadge,
-  Quadrant,
-  ActionLabel,
-  Confidence,
   SuggestedChange,
 } from "./types";
+import type { Quadrant, ActionLabel, Confidence, DataQualityBadge } from "../utils";
+import { round, formatDateISO, groupByQuadrant, topN } from "../utils";
 import type { ItemMetrics, ScoringResult } from "../scoring/engine";
 
 export interface ReportGeneratorInput {
@@ -338,18 +336,15 @@ function findBiggestMarginLeak(
     return { item, weeklyLoss: Math.max(0, weeklyLoss) };
   });
 
-  // Sort by weekly loss
   withGap.sort((a, b) => b.weeklyLoss - a.weeklyLoss);
   const biggest = withGap[0];
-
   if (biggest.weeklyLoss <= 0) return undefined;
 
   const item = biggest.item;
-
   return {
     itemName: item.itemName,
     category: item.category,
-    estimatedLossUsd: Math.round(biggest.weeklyLoss * 100) / 100,
+    estimatedLossUsd: round(biggest.weeklyLoss),
     diagnosis: `Food cost of ${item.foodCostPct.toFixed(1)}% exceeds target of ${targetFoodCostPct}%, eroding margin on a high-volume item.`,
     fixes: [
       {
@@ -391,8 +386,7 @@ function findEasiestWin(items: ItemMetrics[]): EasyWin | undefined {
     action: "REPOSITION",
     confidence: mapConfidence(best.confidence),
     rationale: `High margin of $${best.unitMargin.toFixed(2)}/unit but low sales — better visibility could unlock profit.`,
-    estimatedUpsideUsd:
-      estimatedUpside > 0 ? Math.round(estimatedUpside * 100) / 100 : undefined,
+    estimatedUpsideUsd: estimatedUpside > 0 ? round(estimatedUpside) : undefined,
   };
 }
 
@@ -493,19 +487,9 @@ function generateEstimatedUpsideRange(items: ItemMetrics[]): string | undefined 
  * Build quadrant summary
  */
 function buildQuadrantSummary(items: ItemMetrics[]): WeeklyReportPayload["quadrantSummary"] {
-  const byQuadrant = {
-    STAR: items.filter((i) => i.quadrant === "STAR"),
-    PLOWHORSE: items.filter((i) => i.quadrant === "PLOWHORSE"),
-    PUZZLE: items.filter((i) => i.quadrant === "PUZZLE"),
-    DOG: items.filter((i) => i.quadrant === "DOG"),
-  };
-
-  // Sort each by total margin, take top 5 names
+  const byQuadrant = groupByQuadrant(items);
   const getTopNames = (arr: ItemMetrics[]) =>
-    arr
-      .sort((a, b) => b.totalMargin - a.totalMargin)
-      .slice(0, 5)
-      .map((i) => i.itemName);
+    topN(arr, 5, (i) => i.totalMargin).map((i) => i.itemName);
 
   return {
     stars: getTopNames(byQuadrant.STAR),
@@ -548,10 +532,10 @@ function buildCategorySummary(
 
     result.push({
       category,
-      netSales: Math.round(data.netSales * 100) / 100,
+      netSales: round(data.netSales),
       qtySold: data.qtySold,
-      avgUnitMargin: avgUnitMargin ? Math.round(avgUnitMargin * 100) / 100 : undefined,
-      totalMargin: Math.round(data.totalMargin * 100) / 100,
+      avgUnitMargin: avgUnitMargin ? round(avgUnitMargin) : undefined,
+      totalMargin: round(data.totalMargin),
     });
   }
 
@@ -613,13 +597,6 @@ function buildTopRecommendationsTable(
       suggestedChangeText,
     };
   });
-}
-
-/**
- * Format date as ISO string (yyyy-mm-dd)
- */
-function formatDateISO(date: Date): string {
-  return date.toISOString().split("T")[0];
 }
 
 /**

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { handleApiError, errorResponse } from "@/lib/api";
 import { z } from "zod";
 
 const onboardingSchema = z.object({
@@ -17,9 +18,8 @@ const onboardingSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const body = await req.json();
@@ -32,10 +32,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingUser?.ownedAccount || existingUser?.memberOf) {
-      return NextResponse.json(
-        { error: "Account already exists" },
-        { status: 400 }
-      );
+      return errorResponse("Account already exists", 400);
     }
 
     // Create account with location in a transaction
@@ -73,11 +70,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.error("Onboarding error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Onboarding error");
   }
 }

@@ -1,35 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAuthContext, handleApiError, hasLocationAccess, errorResponse } from "@/lib/api";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id || !session.user.accountId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const ctx = await getAuthContext();
+    if (ctx instanceof NextResponse) return ctx;
 
     const { id } = await params;
 
-    const account = await prisma.account.findUnique({
-      where: { id: session.user.accountId },
-    });
-
-    if (!account) {
-      return NextResponse.json({ error: "Account not found" }, { status: 404 });
-    }
-
     // Check subscription
-    if (account.subscriptionTier === "NONE") {
-      return NextResponse.json(
-        { error: "Subscription required for CSV export" },
-        { status: 403 }
-      );
+    if (ctx.account.subscriptionTier === "NONE") {
+      return errorResponse("Subscription required for CSV export", 403);
     }
 
     const report = await prisma.report.findUnique({
@@ -39,13 +24,8 @@ export async function GET(
           include: {
             location: true,
             metrics: {
-              include: {
-                item: true,
-              },
-              orderBy: [
-                { quadrant: "asc" },
-                { totalMargin: "desc" },
-              ],
+              include: { item: true },
+              orderBy: [{ quadrant: "asc" }, { totalMargin: "desc" }],
             },
           },
         },
@@ -53,18 +33,11 @@ export async function GET(
     });
 
     if (!report) {
-      return NextResponse.json({ error: "Report not found" }, { status: 404 });
+      return errorResponse("Report not found", 404);
     }
 
-    // Check location belongs to account
-    const accountLocations = await prisma.location.findMany({
-      where: { accountId: session.user.accountId },
-      select: { id: true },
-    });
-
-    const locationIds = accountLocations.map((l) => l.id);
-    if (!locationIds.includes(report.week.locationId)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    if (!hasLocationAccess(ctx, report.week.locationId)) {
+      return errorResponse("Unauthorized", 403);
     }
 
     // Build CSV
@@ -126,10 +99,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("CSV export error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "CSV export error");
   }
 }

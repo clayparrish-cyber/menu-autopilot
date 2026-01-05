@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAuthContext, handleApiError, errorResponse } from "@/lib/api";
 import { z } from "zod";
 import { scoreItems, generateScoringResult, ItemInput } from "@/lib/scoring";
 import { CanonicalField } from "@/lib/mapping";
@@ -25,26 +24,24 @@ const uploadSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id || !session.user.accountId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const ctx = await getAuthContext();
+    if (ctx instanceof NextResponse) return ctx;
 
     const body = await req.json();
     const data = uploadSchema.parse(body);
 
-    // Get the user's account and location
+    if (ctx.locationIds.length === 0) {
+      return errorResponse("No location found. Please complete onboarding.", 400);
+    }
+
+    // Get full account with locations for processing
     const account = await prisma.account.findUnique({
-      where: { id: session.user.accountId },
+      where: { id: ctx.account.id },
       include: { locations: true },
     });
 
-    if (!account || account.locations.length === 0) {
-      return NextResponse.json(
-        { error: "No location found. Please complete onboarding." },
-        { status: 400 }
-      );
+    if (!account) {
+      return errorResponse("Account not found", 404);
     }
 
     const location = account.locations[0];
@@ -327,11 +324,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.error("Upload error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Upload error");
   }
 }

@@ -1,26 +1,19 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
+import { getAuth, handleApiError, errorResponse } from "@/lib/api";
 
 export async function POST() {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id || !session.user.accountId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await getAuth();
+    if (auth instanceof NextResponse) return auth;
 
     const account = await prisma.account.findUnique({
-      where: { id: session.user.accountId },
+      where: { id: auth.accountId },
     });
 
     if (!account?.stripeCustomerId) {
-      return NextResponse.json(
-        { error: "No billing account found" },
-        { status: 400 }
-      );
+      return errorResponse("No billing account found", 400);
     }
 
     const portalSession = await stripe.billingPortal.sessions.create({
@@ -30,10 +23,6 @@ export async function POST() {
 
     return NextResponse.json({ url: portalSession.url });
   } catch (error) {
-    console.error("Portal error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, "Portal error");
   }
 }
