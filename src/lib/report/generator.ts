@@ -572,6 +572,7 @@ function buildAllItemsLookup(
       avgPrice: item.avgPrice,
       unitMargin: item.unitMargin,
       quadrant: mapQuadrant(item.quadrant),
+      category: item.category,
     };
   }
   return lookup;

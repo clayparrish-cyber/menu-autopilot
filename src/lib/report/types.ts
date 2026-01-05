@@ -185,5 +185,6 @@ export interface WeeklyReportPayload {
     avgPrice: number;
     unitMargin?: number;
     quadrant?: Quadrant;
+    category?: string;
   }>;
 }

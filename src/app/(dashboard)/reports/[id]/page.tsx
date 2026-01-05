@@ -8,6 +8,7 @@ import { ArrowLeft, Download, ExternalLink, ChevronUp, ChevronDown, Mail } from 
 import type { WeeklyReportPayload } from "@/lib/report/types";
 import { ItemDetailModal } from "@/components/ui/item-detail-modal";
 import { EmailReportDialog } from "@/components/ui/email-report-dialog";
+import { MenuMatrixChart, type MenuMatrixItem } from "@/components/ui/menu-matrix-chart";
 import {
   Card,
   CardContent,
@@ -454,8 +455,8 @@ export default function ReportDetailPage() {
         </section>
       )}
 
-      {/* Quadrant Summary - Enhanced Menu Matrix */}
-      {report.quadrantSummary && (
+      {/* Menu Matrix Scatter Plot */}
+      {report.quadrantSummary && report.allItemsLookup && (
         <section className="mb-8">
           <Card>
             <CardContent>
@@ -463,125 +464,32 @@ export default function ReportDetailPage() {
                 Menu Matrix
               </h3>
               {(() => {
-                // Use allItemsLookup for complete data, fall back to topRecommendationsTable
-                const itemLookup = report.allItemsLookup || {};
-                const allQtys = Object.values(itemLookup).map((i) => i.qtySold || 0);
-                const maxQty = Math.max(...allQtys, 1);
+                // Transform data for scatter plot
+                const chartItems: MenuMatrixItem[] = [];
+                const itemLookup = report.allItemsLookup;
+                const quadrantMap: Record<string, "STAR" | "PLOWHORSE" | "PUZZLE" | "DOG"> = {};
 
-                const QuadrantBox = ({
-                  items,
-                  title,
-                  emoji,
-                  tip,
-                  bgColor,
-                  textColor,
-                  barColor,
-                }: {
-                  items: string[];
-                  title: string;
-                  emoji: string;
-                  tip: string;
-                  bgColor: string;
-                  textColor: string;
-                  barColor: string;
-                }) => (
-                  <div className={`p-4 ${bgColor} rounded-lg`}>
-                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-black/10">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{emoji}</span>
-                        <WithTooltip tip={tip}>
-                          <span className={`text-sm font-semibold ${textColor} underline decoration-dotted underline-offset-2`}>
-                            {title} ({items.length})
-                          </span>
-                        </WithTooltip>
-                      </div>
-                      <span className={`text-[10px] ${textColor} opacity-60 uppercase tracking-wide`}>
-                        Margin %
-                      </span>
-                    </div>
-                    {items.length === 0 ? (
-                      <p className={`text-xs ${textColor} opacity-60`}>None</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {items.map((itemName) => {
-                          const data = itemLookup[itemName];
-                          const qtyPct = data ? (data.qtySold / maxQty) * 100 : 0;
-                          const marginPct = data?.unitMargin !== undefined && data?.avgPrice > 0
-                            ? (data.unitMargin / data.avgPrice) * 100
-                            : null;
-                          return (
-                            <div key={itemName} className="flex items-center gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p className={`text-sm ${textColor} font-medium truncate`}>
-                                  {itemName}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <div className="flex-1 h-1.5 bg-black/10 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full ${barColor} rounded-full`}
-                                      style={{ width: `${Math.max(qtyPct, 0)}%` }}
-                                    />
-                                  </div>
-                                  <span className={`text-[10px] ${textColor} opacity-70 whitespace-nowrap`}>
-                                    {data ? `${data.qtySold} sold` : "— sold"}
-                                  </span>
-                                </div>
-                              </div>
-                              <span className={`text-xs font-medium whitespace-nowrap ${
-                                marginPct !== null
-                                  ? marginPct >= 70 ? 'text-emerald-600' : marginPct >= 60 ? 'text-amber-600' : 'text-red-600'
-                                  : `${textColor} opacity-60`
-                              }`}>
-                                {marginPct !== null ? `${marginPct.toFixed(0)}%` : "—"}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
+                // Build quadrant mapping from quadrantSummary
+                report.quadrantSummary!.stars.forEach((name) => (quadrantMap[name] = "STAR"));
+                report.quadrantSummary!.plowhorses.forEach((name) => (quadrantMap[name] = "PLOWHORSE"));
+                report.quadrantSummary!.puzzles.forEach((name) => (quadrantMap[name] = "PUZZLE"));
+                report.quadrantSummary!.dogs.forEach((name) => (quadrantMap[name] = "DOG"));
 
-                return (
-                  <div className="grid grid-cols-2 gap-4">
-                    <QuadrantBox
-                      items={report.quadrantSummary!.plowhorses}
-                      title="Plowhorses"
-                      emoji="🐴"
-                      tip={QUADRANT_DESCRIPTIONS.PLOWHORSE}
-                      bgColor="bg-blue-50"
-                      textColor="text-blue-800"
-                      barColor="bg-blue-400"
-                    />
-                    <QuadrantBox
-                      items={report.quadrantSummary!.stars}
-                      title="Stars"
-                      emoji="⭐"
-                      tip={QUADRANT_DESCRIPTIONS.STAR}
-                      bgColor="bg-emerald-50"
-                      textColor="text-emerald-800"
-                      barColor="bg-emerald-400"
-                    />
-                    <QuadrantBox
-                      items={report.quadrantSummary!.dogs}
-                      title="Dogs"
-                      emoji="🐕"
-                      tip={QUADRANT_DESCRIPTIONS.DOG}
-                      bgColor="bg-red-50"
-                      textColor="text-red-800"
-                      barColor="bg-red-400"
-                    />
-                    <QuadrantBox
-                      items={report.quadrantSummary!.puzzles}
-                      title="Puzzles"
-                      emoji="🧩"
-                      tip={QUADRANT_DESCRIPTIONS.PUZZLE}
-                      bgColor="bg-amber-50"
-                      textColor="text-amber-800"
-                      barColor="bg-amber-400"
-                    />
-                  </div>
-                );
+                // Convert lookup to chart items
+                Object.entries(itemLookup).forEach(([itemName, data]) => {
+                  if (quadrantMap[itemName]) {
+                    chartItems.push({
+                      itemName,
+                      category: data.category,
+                      qtySold: data.qtySold || 0,
+                      avgPrice: data.avgPrice || 0,
+                      unitMargin: data.unitMargin,
+                      quadrant: quadrantMap[itemName],
+                    });
+                  }
+                });
+
+                return <MenuMatrixChart items={chartItems} />;
               })()}
             </CardContent>
           </Card>
