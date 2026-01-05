@@ -42,29 +42,26 @@ export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
   const chartHeight = height - padding.top - padding.bottom;
 
   // Calculate scales with dynamic zoom to fit data
+  // NOTE: Y-axis uses unitMargin in DOLLARS (not %) to match scoring engine's quadrant logic
   const { xScale, yScale, minQty, maxQty, minMargin, maxMargin } = useMemo(() => {
     const quantities = items.map((i) => i.qtySold);
-    const margins = items.map((i) => {
-      if (i.unitMargin !== undefined && i.avgPrice > 0) {
-        return (i.unitMargin / i.avgPrice) * 100;
-      }
-      return 0;
-    });
+    // Use unitMargin in dollars - this is what the scoring engine uses for quadrant classification
+    const margins = items.map((i) => i.unitMargin ?? 0);
 
     // Calculate actual data bounds
     const dataMinQ = Math.min(...quantities);
     const dataMaxQ = Math.max(...quantities, 1);
     const dataMinM = Math.min(...margins);
-    const dataMaxM = Math.max(...margins, 50);
+    const dataMaxM = Math.max(...margins, 5);
 
     // Add 10% padding on each side for breathing room
     const qtyRange = dataMaxQ - dataMinQ || dataMaxQ * 0.5;
-    const marginRange = dataMaxM - dataMinM || 20;
+    const marginRange = dataMaxM - dataMinM || 5;
 
     const minQ = Math.max(0, dataMinQ - qtyRange * 0.1);
     const maxQ = dataMaxQ + qtyRange * 0.1;
     const minM = Math.max(0, dataMinM - marginRange * 0.1);
-    const maxM = Math.min(100, dataMaxM + marginRange * 0.1);
+    const maxM = dataMaxM + marginRange * 0.1;
 
     // Scale functions that map data values to pixel positions
     const xScaleFn = (qty: number) => ((qty - minQ) / (maxQ - minQ)) * chartWidth;
@@ -130,12 +127,10 @@ export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
 
           {/* Data points */}
           {items.map((item, i) => {
-            const marginPct =
-              item.unitMargin !== undefined && item.avgPrice > 0
-                ? (item.unitMargin / item.avgPrice) * 100
-                : 0;
+            // Use unitMargin in dollars directly - matches scoring engine's quadrant logic
+            const margin = item.unitMargin ?? 0;
             const cx = xScale(item.qtySold);
-            const cy = yScale(marginPct);
+            const cy = yScale(margin);
             const color = QUADRANT_COLORS[item.quadrant];
             const isHovered = hoveredItem?.itemName === item.itemName;
 
@@ -179,7 +174,7 @@ export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
           transform={`rotate(-90, 15, ${padding.top + chartHeight / 2})`}
           className="fill-gray-600 text-xs"
         >
-          Margin % →
+          Unit Margin $ →
         </text>
 
         {/* Axis tick labels */}
@@ -190,10 +185,10 @@ export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
           {Math.round(maxQty)}
         </text>
         <text x={padding.left - 8} y={padding.top + chartHeight} textAnchor="end" className="fill-gray-500 text-[10px]">
-          {Math.round(minMargin)}%
+          ${Math.round(minMargin)}
         </text>
         <text x={padding.left - 8} y={padding.top + 4} textAnchor="end" className="fill-gray-500 text-[10px]">
-          {Math.round(maxMargin)}%
+          ${Math.round(maxMargin)}
         </text>
       </svg>
 
