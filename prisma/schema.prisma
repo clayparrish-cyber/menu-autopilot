@@ -604,26 +604,27 @@ enum EntryStatus {
 
 // Individual tip allocation from server to recipient
 model TipAllocation {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
 
-  amount      Float    // Dollar amount allocated
+  amount         Float    // Dollar amount allocated
+  recipientName  String   // Name of recipient (for display/matching)
 
   // Source: the server giving the tip-out
-  entry       ShiftEntry @relation("AllocationSource", fields: [entryId], references: [id], onDelete: Cascade)
-  entryId     String
+  entry          ShiftEntry @relation("AllocationSource", fields: [entryId], references: [id], onDelete: Cascade)
+  entryId        String
 
-  // Recipient: the staff member receiving
-  recipient   TipStaff   @relation("AllocationRecipient", fields: [recipientId], references: [id])
-  recipientId String
+  // Recipient: linked staff member (optional - for reconciliation)
+  recipientStaff TipStaff?  @relation("AllocationRecipient", fields: [recipientStaffId], references: [id])
+  recipientStaffId String?
 
-  // Optional note
-  note        String?
+  // Optional notes
+  notes          String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  @@unique([entryId, recipientId])
-  @@index([recipientId])
+  @@index([entryId])
+  @@index([recipientStaffId])
 }
 
 // Immutable audit log for compliance
