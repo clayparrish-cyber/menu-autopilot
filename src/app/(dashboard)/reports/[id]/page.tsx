@@ -20,11 +20,9 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   DataQualityBadge,
-  QuadrantBadge,
   ActionBadge,
   ConfidenceBadge,
   CostSourceBadge,
-  QUADRANT_DESCRIPTIONS,
 } from "@/components/ui/badge";
 import { Accordion } from "@/components/ui/accordion";
 import { WithTooltip } from "@/components/ui/tooltip";

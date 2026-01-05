@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAuthContext, handleApiError, hasLocationAccess, errorResponse } from "@/lib/api";
-import { generateWeeklyReportPayload, getPriorWeekSnapshot } from "@/lib/report";
+import { generateWeeklyReportPayload, getPriorWeekSnapshot, transformMetricsToItems } from "@/lib/report";
 import { generateScoringResult } from "@/lib/scoring/engine";
-import type { ItemMetrics } from "@/lib/scoring/engine";
 
 export async function GET(
   req: NextRequest,
@@ -15,7 +14,6 @@ export async function GET(
 
     const { id } = await params;
 
-    // Check subscription - full report requires subscription
     if (ctx.account.subscriptionTier === "NONE") {
       return errorResponse("Subscription required for full report", 403);
     }
@@ -40,57 +38,10 @@ export async function GET(
       return errorResponse("Unauthorized", 403);
     }
 
-    // Transform database metrics to ItemMetrics format
-    const items: ItemMetrics[] = report.week.metrics.map((metric) => {
-      const item: ItemMetrics = {
-        itemId: metric.itemId,
-        itemName: metric.item.name,
-        category: metric.item.category || undefined,
-        quantitySold: metric.quantitySold,
-        netSales: metric.netSales,
-        unitFoodCost: metric.unitFoodCost,
-        unitCostBase: metric.unitCostBase ?? undefined,
-        unitCostModifiers: metric.unitCostModifiers ?? undefined,
-        costSource: metric.costSource as ItemMetrics["costSource"],
-        isAnchor: metric.item.isAnchor,
-        avgPrice: metric.avgPrice,
-        unitMargin: metric.unitMargin,
-        totalMargin: metric.totalMargin,
-        foodCostPct: metric.foodCostPct,
-        popularityPercentile: metric.popularityPercentile,
-        marginPercentile: metric.marginPercentile,
-        profitPercentile: metric.profitPercentile,
-        quadrant: metric.quadrant as ItemMetrics["quadrant"],
-        recommendedAction: metric.recommendedAction as ItemMetrics["recommendedAction"],
-        suggestedPrice: metric.suggestedPrice,
-        priceChangeAmount: metric.priceChangeAmount,
-        priceChangePct: metric.priceChangePct,
-        confidence: metric.confidence as ItemMetrics["confidence"],
-        explanation: Array.isArray(metric.explanation) ? metric.explanation as string[] : [],
-        estimatedImpact: 0,
-      };
-
-      // Calculate estimated impact
-      if (item.recommendedAction === "REPRICE" && item.priceChangeAmount) {
-        item.estimatedImpact = item.priceChangeAmount * item.quantitySold;
-      } else if (item.recommendedAction === "REMOVE") {
-        item.estimatedImpact = Math.abs(item.totalMargin);
-      } else if (item.recommendedAction === "REPOSITION") {
-        item.estimatedImpact = item.totalMargin;
-      }
-
-      return item;
-    });
-
-    // Sort by estimated impact
-    items.sort((a, b) => b.estimatedImpact - a.estimatedImpact);
-
-    // Use existing scoring result generator to avoid duplication
+    const items = transformMetricsToItems(report.week.metrics);
     const scoringResult = generateScoringResult(items);
-
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
-    // Query prior week snapshot for WoW comparison
     const priorWeekSummary = await getPriorWeekSnapshot(
       report.week.locationId,
       report.week.weekStart

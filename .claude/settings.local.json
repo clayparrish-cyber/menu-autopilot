@@ -35,7 +35,8 @@
       "Bash(npm ls:*)",
       "Bash(git diff:*)",
       "Bash(npx tsx:*)",
-      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yeah good call\" npx prisma migrate reset:*)"
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yeah good call\" npx prisma migrate reset:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }
