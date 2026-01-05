@@ -42,19 +42,27 @@ export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
   const chartHeight = height - padding.top - padding.bottom;
 
   // Calculate scales with dynamic zoom to fit data
-  // NOTE: Y-axis uses unitMargin in DOLLARS (not %) to match scoring engine's quadrant logic
-  // Scoring engine uses 60th percentile thresholds for quadrant classification
+  // Derive threshold lines from actual quadrant assignments to ensure perfect visual separation
   const { xScale, yScale, minQty, maxQty, minMargin, maxMargin, qtyThreshold, marginThreshold } = useMemo(() => {
     const quantities = items.map((i) => i.qtySold);
-    // Use unitMargin in dollars - this is what the scoring engine uses for quadrant classification
     const margins = items.map((i) => i.unitMargin ?? 0);
 
-    // Calculate 60th percentile thresholds (matches scoring engine's DEFAULT_SETTINGS)
-    const sortedQty = [...quantities].sort((a, b) => a - b);
-    const sortedMargin = [...margins].sort((a, b) => a - b);
-    const p60Index = Math.floor(0.6 * (sortedQty.length - 1));
-    const qtyP60 = sortedQty[p60Index] ?? 0;
-    const marginP60 = sortedMargin[p60Index] ?? 0;
+    // Calculate thresholds from actual quadrant assignments (guarantees correct separation)
+    // High qty = STAR or PLOWHORSE, Low qty = PUZZLE or DOG
+    // High margin = STAR or PUZZLE, Low margin = PLOWHORSE or DOG
+    const highQtyItems = items.filter(i => i.quadrant === "STAR" || i.quadrant === "PLOWHORSE");
+    const lowQtyItems = items.filter(i => i.quadrant === "PUZZLE" || i.quadrant === "DOG");
+    const highMarginItems = items.filter(i => i.quadrant === "STAR" || i.quadrant === "PUZZLE");
+    const lowMarginItems = items.filter(i => i.quadrant === "PLOWHORSE" || i.quadrant === "DOG");
+
+    // Find the gap between groups and draw line in the middle
+    const minHighQty = highQtyItems.length > 0 ? Math.min(...highQtyItems.map(i => i.qtySold)) : 0;
+    const maxLowQty = lowQtyItems.length > 0 ? Math.max(...lowQtyItems.map(i => i.qtySold)) : 0;
+    const qtyThresholdVal = (minHighQty + maxLowQty) / 2;
+
+    const minHighMargin = highMarginItems.length > 0 ? Math.min(...highMarginItems.map(i => i.unitMargin ?? 0)) : 0;
+    const maxLowMargin = lowMarginItems.length > 0 ? Math.max(...lowMarginItems.map(i => i.unitMargin ?? 0)) : 0;
+    const marginThresholdVal = (minHighMargin + maxLowMargin) / 2;
 
     // Calculate actual data bounds
     const dataMinQ = Math.min(...quantities);
@@ -82,8 +90,8 @@ export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
       maxQty: maxQ,
       minMargin: minM,
       maxMargin: maxM,
-      qtyThreshold: qtyP60,
-      marginThreshold: marginP60,
+      qtyThreshold: qtyThresholdVal,
+      marginThreshold: marginThresholdVal,
     };
   }, [items, chartWidth, chartHeight]);
 
