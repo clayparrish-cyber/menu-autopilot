@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// NextAuth models
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      AuthAccount[]
+  sessions      Session[]
+
+  // App relations - owned account
+  ownedAccount  Account?  @relation("AccountOwner")
+
+  // Member of account
+  accountId     String?
+  memberOf      Account?  @relation("AccountMembers", fields: [accountId], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model AuthAccount {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// Business models
+model Account {
+  id                    String    @id @default(cuid())
+  name                  String
+
+  // Stripe
+  stripeCustomerId      String?   @unique
+  stripeSubscriptionId  String?
+  stripePriceId         String?
+  stripeCurrentPeriodEnd DateTime?
+  subscriptionTier      SubscriptionTier @default(NONE)
+
+  // Settings
+  targetFoodCostPct     Float     @default(30)
+  minQtyThreshold       Int       @default(10)
+  popularityThreshold   Int       @default(60)
+  marginThreshold       Int       @default(60)
+  allowPremiumPricing   Boolean   @default(false)
+
+  // Column mappings (JSON)
+  columnMappings        Json?
+
+  owner                 User?     @relation("AccountOwner", fields: [ownerId], references: [id])
+  ownerId               String?   @unique
+  members               User[]    @relation("AccountMembers")
+  locations             Location[]
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+enum SubscriptionTier {
+  NONE
+  SOLO
+  TEAM
+  GROUP
+}
+
+model Location {
+  id          String    @id @default(cuid())
+  name        String
+  address     String?
+
+  account     Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId   String
+
+  items       Item[]
+  uploads     Upload[]
+  weeks       Week[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Upload {
+  id            String      @id @default(cuid())
+  filename      String
+  fileType      UploadType
+  rowCount      Int
+  status        UploadStatus @default(PENDING)
+  errorMessage  String?
+
+  // Column mapping used for this upload
+  columnMapping Json?
+
+  location      Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId    String
+
+  week          Week?       @relation(fields: [weekId], references: [id])
+  weekId        String?
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+enum UploadType {
+  PERFORMANCE
+  COSTS
+}
+
+enum UploadStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Week {
+  id          String    @id @default(cuid())
+  weekStart   DateTime
+  weekEnd     DateTime
+
+  location    Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId  String
+
+  uploads     Upload[]
+  metrics     ItemWeekMetric[]
+  report      Report?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([locationId, weekStart, weekEnd])
+}
+
+model Item {
+  id          String    @id @default(cuid())
+  name        String
+  category    String?
+  isAnchor    Boolean   @default(false)
+
+  location    Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId  String
+
+  costOverrides CostOverride[]
+  weekMetrics   ItemWeekMetric[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([locationId, name])
+}
+
+model CostOverride {
+  id            String    @id @default(cuid())
+  unitFoodCost  Float
+  effectiveDate DateTime  @default(now())
+
+  item          Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId        String
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([itemId, effectiveDate])
+}
+
+model ItemWeekMetric {
+  id                  String    @id @default(cuid())
+
+  // Raw data
+  quantitySold        Int
+  netSales            Float
+
+  // Computed metrics
+  avgPrice            Float
+  unitFoodCost        Float
+  unitMargin          Float
+  totalMargin         Float
+  foodCostPct         Float
+
+  // Percentile ranks (0-100)
+  popularityPercentile Float
+  marginPercentile     Float
+  profitPercentile     Float
+
+  // Classification
+  quadrant            Quadrant
+
+  // Recommendation
+  recommendedAction   RecommendedAction
+  suggestedPrice      Float?
+  priceChangeAmount   Float?
+  priceChangePct      Float?
+  confidence          Confidence
+  explanation         String[]
+
+  item                Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId              String
+
+  week                Week      @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  weekId              String
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([itemId, weekId])
+}
+
+enum Quadrant {
+  STAR
+  PLOWHORSE
+  PUZZLE
+  DOG
+}
+
+enum RecommendedAction {
+  KEEP
+  PROMOTE
+  REPRICE
+  REPOSITION
+  REWORK
+  REMOVE
+}
+
+enum Confidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model Report {
+  id            String    @id @default(cuid())
+
+  // Summary data (JSON for flexibility)
+  summary       Json?
+
+  // Status
+  generatedAt   DateTime  @default(now())
+  emailSentAt   DateTime?
+
+  week          Week      @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  weekId        String    @unique
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}

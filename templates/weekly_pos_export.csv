@@ -1,0 +1,18 @@
+week_start,week_end,category,item_name,quantity_sold,net_sales
+2026-01-05,2026-01-11,Appetizers,Fried Pickles,180,1710.00
+2026-01-05,2026-01-11,Appetizers,Loaded Nachos,95,1235.00
+2026-01-05,2026-01-11,Appetizers,Buffalo Wings,220,3080.00
+2026-01-05,2026-01-11,Appetizers,Spinach Dip,45,450.00
+2026-01-05,2026-01-11,Mains,Brisket Sandwich,95,1520.00
+2026-01-05,2026-01-11,Mains,BBQ Burger,150,2250.00
+2026-01-05,2026-01-11,Mains,Grilled Chicken,85,1530.00
+2026-01-05,2026-01-11,Mains,Fish Tacos,60,840.00
+2026-01-05,2026-01-11,Mains,Ribeye Steak,40,1280.00
+2026-01-05,2026-01-11,Salads,Caesar Salad,110,1375.00
+2026-01-05,2026-01-11,Salads,House Salad,75,600.00
+2026-01-05,2026-01-11,Salads,Cobb Salad,55,770.00
+2026-01-05,2026-01-11,Desserts,Cheesecake,65,520.00
+2026-01-05,2026-01-11,Desserts,Brownie Sundae,80,560.00
+2026-01-05,2026-01-11,Drinks,Margarita,250,2500.00
+2026-01-05,2026-01-11,Drinks,House Wine,180,1620.00
+2026-01-05,2026-01-11,Drinks,Craft Beer,320,2240.00
