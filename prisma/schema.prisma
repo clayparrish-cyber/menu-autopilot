@@ -384,3 +384,277 @@ model WeekSnapshot {
   @@unique([locationId, weekStart, weekEnd])
   @@index([locationId, weekStart])
 }
+
+// ============================================================================
+// AirTip Models - Tip Automation Tool
+// ============================================================================
+
+// Multi-tenant organization for AirTip (separate from Menu Autopilot Account)
+model TipOrganization {
+  id        String   @id @default(cuid())
+  name      String
+
+  locations TipLocation[]
+  users     TipUser[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Restaurant location for tip management
+model TipLocation {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  timezone  String   @default("America/New_York")
+
+  organization   TipOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+
+  staff     TipStaff[]
+  shifts    Shift[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// AirTip user authentication (separate from Menu Autopilot)
+model TipUser {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  role          TipUserRole @default(SERVER)
+
+  organization   TipOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+
+  // Link to staff profile (if this user is also a staff member)
+  staffProfile  TipStaff?  @relation("UserStaffProfile")
+  staffId       String?    @unique
+
+  // Sessions for auth
+  sessions      TipSession[]
+
+  // Audit trail
+  auditLogs     TipAuditLog[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model TipSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+
+  user      TipUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  createdAt DateTime @default(now())
+}
+
+enum TipUserRole {
+  ADMIN       // Can manage org, locations, staff, view all
+  MANAGER     // Can manage shifts, reconcile, close shifts
+  SERVER      // Can only view/submit own allocations
+}
+
+// Staff member at a location (may or may not have a TipUser login)
+model TipStaff {
+  id        String   @id @default(cuid())
+  name      String
+  roleType  StaffRoleType @default(SERVER)
+  isActive  Boolean  @default(true)
+
+  location   TipLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId String
+
+  // Optional link to user account
+  user      TipUser? @relation("UserStaffProfile", fields: [userId], references: [id])
+  userId    String?  @unique
+
+  // Shift entries where this staff was working
+  shiftEntries   ShiftEntry[]
+
+  // Allocations received from other servers
+  allocationsReceived TipAllocation[] @relation("AllocationRecipient")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([locationId, name])
+  @@index([locationId, isActive])
+}
+
+enum StaffRoleType {
+  SERVER
+  BARTENDER
+  BUSSER
+  RUNNER
+  HOST
+  BARBACK
+  EXPEDITOR
+  KITCHEN     // BOH
+  MANAGER_FOH
+  OTHER
+}
+
+// A shift record (e.g., Lunch on Jan 5, 2026)
+model Shift {
+  id          String      @id @default(cuid())
+  shiftDate   DateTime    @db.Date
+  shiftType   ShiftType   @default(DINNER)
+  status      ShiftStatus @default(OPEN)
+
+  // Totals from Toast (for reconciliation)
+  toastTotalCCTips   Float?   // Total CC tips from Toast report
+  toastTotalSales    Float?   // Total sales from Toast report
+  toastTotalChecks   Int?     // Total checks from Toast report
+
+  // Computed totals (sum of entries)
+  totalCCTips        Float    @default(0)
+  totalCashTips      Float    @default(0)
+  totalSales         Float    @default(0)
+  totalAllocated     Float    @default(0)
+
+  // Manager who closed the shift
+  closedBy           String?
+  closedAt           DateTime?
+  closeNotes         String?
+
+  location    TipLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId  String
+
+  entries     ShiftEntry[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([locationId, shiftDate, shiftType])
+  @@index([locationId, status])
+}
+
+enum ShiftType {
+  BREAKFAST
+  BRUNCH
+  LUNCH
+  DINNER
+  LATE_NIGHT
+  ALL_DAY
+}
+
+enum ShiftStatus {
+  OPEN        // Shift created, accepting entries
+  IN_PROGRESS // Entries submitted, awaiting reconciliation
+  CLOSED      // Manager closed, finalized
+  REOPENED    // Admin reopened for correction
+}
+
+// Per-server data for a shift
+model ShiftEntry {
+  id            String   @id @default(cuid())
+
+  // Server info
+  serverName    String   // Denormalized for CSV import flexibility
+
+  // From Toast / CSV upload
+  grossSales    Float    @default(0)
+  ccTips        Float    @default(0)
+  cashTips      Float    @default(0)
+  checkCount    Int?
+  declaredTips  Float?   // If tracked separately
+
+  // Computed
+  totalTips     Float    @default(0)  // ccTips + cashTips
+  requiredTipOut Float   @default(0)  // Calculated based on rules (future)
+  actualTipOut  Float    @default(0)  // Sum of allocations
+  netTips       Float    @default(0)  // totalTips - actualTipOut
+
+  // Submission status
+  status        EntryStatus @default(PENDING)
+  submittedAt   DateTime?
+  submittedBy   String?     // Could be server or manager on their behalf
+
+  shift         Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  shiftId       String
+
+  // Optional link to staff record
+  staff         TipStaff? @relation(fields: [staffId], references: [id])
+  staffId       String?
+
+  // Allocations from this server to recipients
+  allocations   TipAllocation[] @relation("AllocationSource")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([shiftId, serverName])
+  @@index([shiftId, status])
+}
+
+enum EntryStatus {
+  PENDING     // Not yet submitted
+  SUBMITTED   // Server submitted allocations
+  APPROVED    // Manager approved
+  ADJUSTED    // Manager made adjustments
+}
+
+// Individual tip allocation from server to recipient
+model TipAllocation {
+  id          String   @id @default(cuid())
+
+  amount      Float    // Dollar amount allocated
+
+  // Source: the server giving the tip-out
+  entry       ShiftEntry @relation("AllocationSource", fields: [entryId], references: [id], onDelete: Cascade)
+  entryId     String
+
+  // Recipient: the staff member receiving
+  recipient   TipStaff   @relation("AllocationRecipient", fields: [recipientId], references: [id])
+  recipientId String
+
+  // Optional note
+  note        String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([entryId, recipientId])
+  @@index([recipientId])
+}
+
+// Immutable audit log for compliance
+model TipAuditLog {
+  id          String   @id @default(cuid())
+  action      TipAuditAction
+  entityType  String   // "Shift", "ShiftEntry", "TipAllocation", etc.
+  entityId    String
+  details     Json?    // Additional context
+
+  user        TipUser? @relation(fields: [userId], references: [id])
+  userId      String?
+
+  ipAddress   String?
+  userAgent   String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+}
+
+enum TipAuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  SUBMIT
+  APPROVE
+  CLOSE
+  REOPEN
+  OVERRIDE
+  LOGIN
+  LOGOUT
+}
