@@ -7,10 +7,12 @@ import type {
   WatchItem,
   DataQuality,
   SuggestedChange,
+  WeekSummaryTotals,
 } from "./types";
 import type { Quadrant, ActionLabel, Confidence, DataQualityBadge } from "../utils";
 import { round, formatDateISO, groupByQuadrant, topN } from "../utils";
 import type { ItemMetrics, ScoringResult } from "../scoring/engine";
+import { computeWeekSummary } from "./snapshot";
 
 import type { Channel } from "@prisma/client";
 import { CHANNEL_PRESETS } from "../channel";
@@ -26,6 +28,7 @@ export interface ReportGeneratorInput {
   targetFoodCostPct: number;
   mappingWarnings?: string[];
   channel?: Channel;
+  priorWeekSummary?: WeekSummaryTotals | null;
 }
 
 /**
@@ -629,9 +632,13 @@ export function generateWeeklyReportPayload(
     targetFoodCostPct,
     mappingWarnings,
     channel,
+    priorWeekSummary,
   } = input;
 
   const items = scoringResult.items;
+
+  // Compute current week summary from scoring result
+  const currentWeekSummary = computeWeekSummary(scoringResult);
 
   // Build action cards (minimum 3, sorted by impact)
   const actionCards = items
@@ -663,6 +670,11 @@ export function generateWeeklyReportPayload(
     weekEnd: formatDateISO(weekEnd),
 
     dataQuality: assessDataQuality(items, mappingWarnings),
+
+    // Week-over-week comparison
+    currentWeekSummary,
+    priorWeekSummary: priorWeekSummary ?? undefined,
+
     focusLine: generateFocusLine(scoringResult, channel),
     estimatedUpsideRange: generateEstimatedUpsideRange(items),
 

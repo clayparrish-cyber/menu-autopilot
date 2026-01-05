@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
+    "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "@types/nodemailer": "^7.0.4",
     "date-fns": "^4.1.0",
@@ -26,6 +27,7 @@
     "next-auth": "^4.24.13",
     "nodemailer": "^7.0.12",
     "papaparse": "^5.5.3",
+    "pg": "^8.16.3",
     "prisma": "^7.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",

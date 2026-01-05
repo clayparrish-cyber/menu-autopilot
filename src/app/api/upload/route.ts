@@ -12,6 +12,7 @@ import {
   type POSItem,
   type MECostItem,
 } from "@/lib/cost";
+import { computeWeekSummary, saveWeekSnapshot } from "@/lib/report";
 
 const uploadSchema = z.object({
   performanceData: z.object({
@@ -405,6 +406,10 @@ export async function POST(req: NextRequest) {
         generatedAt: new Date(),
       },
     });
+
+    // Save week snapshot for WoW comparison
+    const weekSummary = computeWeekSummary(result);
+    await saveWeekSnapshot(location.id, weekStart, weekEnd, weekSummary);
 
     // Save column mapping to account for future use
     const columnMappings = {

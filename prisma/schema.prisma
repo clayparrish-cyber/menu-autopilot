@@ -132,6 +132,7 @@ model Location {
   items       Item[]
   uploads     Upload[]
   weeks       Week[]
+  snapshots   WeekSnapshot[]
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -319,4 +320,31 @@ model Report {
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+// Weekly aggregate snapshot for WoW comparison
+model WeekSnapshot {
+  id            String    @id @default(cuid())
+
+  // Week identifier
+  weekStart     DateTime
+  weekEnd       DateTime
+
+  // Aggregate KPIs
+  revenue       Float     // Total net sales
+  grossMargin   Float     // Total margin (sum of item margins)
+  itemsSold     Int       // Total quantity sold
+  marginPct     Float     // grossMargin / revenue * 100
+
+  // Optional category breakdown (JSON)
+  categoryBreakdown Json?
+
+  location      Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId    String
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([locationId, weekStart, weekEnd])
+  @@index([locationId, weekStart])
 }

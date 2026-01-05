@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAuthContext, handleApiError, hasLocationAccess, errorResponse } from "@/lib/api";
-import { generateWeeklyReportPayload } from "@/lib/report";
+import { generateWeeklyReportPayload, getPriorWeekSnapshot } from "@/lib/report";
 import { generateScoringResult } from "@/lib/scoring/engine";
 import type { ItemMetrics } from "@/lib/scoring/engine";
 
@@ -90,6 +90,12 @@ export async function GET(
 
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
+    // Query prior week snapshot for WoW comparison
+    const priorWeekSummary = await getPriorWeekSnapshot(
+      report.week.locationId,
+      report.week.weekStart
+    );
+
     const payload = generateWeeklyReportPayload({
       reportId: report.id,
       accountName: report.week.location.account.name,
@@ -100,6 +106,7 @@ export async function GET(
       baseUrl,
       targetFoodCostPct: ctx.account.targetFoodCostPct || 30,
       channel: report.week.location.channel,
+      priorWeekSummary,
     });
 
     return NextResponse.json(payload);
