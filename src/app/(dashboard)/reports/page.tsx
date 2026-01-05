@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { FileText, ChevronRight, Plus } from "lucide-react";
+import { FileText, ChevronRight, Plus, Mail } from "lucide-react";
+import { EmailReportDialog } from "@/components/ui/email-report-dialog";
 
 interface ReportSummary {
   id: string;
@@ -26,6 +27,7 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [emailDialogReport, setEmailDialogReport] = useState<ReportSummary | null>(null);
 
   useEffect(() => {
     async function fetchReports() {
@@ -145,11 +147,33 @@ export default function ReportsPage() {
                   </div>
                 </div>
 
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setEmailDialogReport(report);
+                  }}
+                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Email report"
+                >
+                  <Mail className="h-5 w-5" />
+                </button>
+
                 <ChevronRight className="h-5 w-5 text-gray-400" />
               </div>
             </Link>
           ))}
         </div>
+      )}
+
+      {/* Email Report Dialog */}
+      {emailDialogReport && (
+        <EmailReportDialog
+          isOpen={!!emailDialogReport}
+          onClose={() => setEmailDialogReport(null)}
+          reportId={emailDialogReport.id}
+          reportTitle={`Week of ${format(new Date(emailDialogReport.weekStart), "MMM d")} - ${format(new Date(emailDialogReport.weekEnd), "MMM d, yyyy")}`}
+        />
       )}
     </div>
   );

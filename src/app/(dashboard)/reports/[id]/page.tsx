@@ -4,9 +4,10 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowLeft, Download, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, ChevronUp, ChevronDown, Mail } from "lucide-react";
 import type { WeeklyReportPayload } from "@/lib/report/types";
 import { ItemDetailModal } from "@/components/ui/item-detail-modal";
+import { EmailReportDialog } from "@/components/ui/email-report-dialog";
 import {
   Card,
   CardContent,
@@ -41,6 +42,7 @@ export default function ReportDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [hasSubscription, setHasSubscription] = useState(true);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState<string>("qty");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
@@ -592,14 +594,23 @@ export default function ReportDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-gray-900">All Recommendations</h2>
             {hasSubscription && (
-              <a
-                href={`/api/reports/${params.id}/csv`}
-                download
-                className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
-              >
-                <Download className="mr-1 h-4 w-4" />
-                Download CSV
-              </a>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setEmailDialogOpen(true)}
+                  className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
+                >
+                  <Mail className="mr-1 h-4 w-4" />
+                  Email Report
+                </button>
+                <a
+                  href={`/api/reports/${params.id}/csv`}
+                  download
+                  className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
+                >
+                  <Download className="mr-1 h-4 w-4" />
+                  Download CSV
+                </a>
+              </div>
             )}
           </div>
 
@@ -702,6 +713,14 @@ export default function ReportDetailPage() {
         isOpen={!!selectedItem}
         onClose={() => setSelectedItem(null)}
         item={selectedItem}
+      />
+
+      {/* Email Report Dialog */}
+      <EmailReportDialog
+        isOpen={emailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
+        reportId={params.id as string}
+        reportTitle={`${report.locationName} – ${format(weekStartDate, "MMM d")} to ${format(weekEndDate, "MMM d")}`}
       />
     </div>
   );

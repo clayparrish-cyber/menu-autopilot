@@ -318,8 +318,39 @@ model Report {
   week          Week      @relation(fields: [weekId], references: [id], onDelete: Cascade)
   weekId        String    @unique
 
+  emailLogs     EmailLog[]
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+// Email audit log for compliance and tracking
+model EmailLog {
+  id            String      @id @default(cuid())
+
+  report        Report      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId      String
+
+  accountId     String      // Account that owns the report
+  sentBy        String      // userId who triggered send
+  recipients    String[]    // array of email addresses
+  subject       String
+
+  status        EmailStatus @default(PENDING)
+  messageId     String?     // from Resend for tracking
+  errorMessage  String?
+
+  sentAt        DateTime    @default(now())
+
+  @@index([accountId, sentAt])
+  @@index([reportId, sentAt])
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
 }
 
 // Weekly aggregate snapshot for WoW comparison
