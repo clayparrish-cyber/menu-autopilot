@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, X } from "lucide-react";
+import { Save, X, Mail } from "lucide-react";
 
 interface Settings {
   targetFoodCostPct: number;
@@ -9,7 +9,25 @@ interface Settings {
   popularityThreshold: number;
   marginThreshold: number;
   allowPremiumPricing: boolean;
+  emailScheduleEnabled: boolean;
+  emailScheduleDay: number;
+  emailScheduleHour: number;
 }
+
+const DAYS_OF_WEEK = [
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+  { value: 7, label: "Sunday" },
+];
+
+const HOURS = Array.from({ length: 24 }, (_, i) => ({
+  value: i,
+  label: i === 0 ? "12:00 AM" : i < 12 ? `${i}:00 AM` : i === 12 ? "12:00 PM" : `${i - 12}:00 PM`,
+}));
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>({
@@ -18,6 +36,9 @@ export default function SettingsPage() {
     popularityThreshold: 60,
     marginThreshold: 60,
     allowPremiumPricing: false,
+    emailScheduleEnabled: true,
+    emailScheduleDay: 1,
+    emailScheduleHour: 14,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -258,6 +279,93 @@ export default function SettingsPage() {
           <p className="text-xs text-gray-500 mt-1 ml-6">
             When enabled, price suggestions can exceed the category 85th percentile
           </p>
+        </div>
+      </div>
+
+      {/* Email Schedule Settings */}
+      <div className="bg-white rounded-lg shadow p-6 mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Mail className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-medium text-gray-900">Email Schedule</h2>
+        </div>
+
+        <div className="space-y-4">
+          {/* Enable/Disable Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <label
+                htmlFor="emailScheduleEnabled"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Automatic Weekly Emails
+              </label>
+              <p className="text-xs text-gray-500">
+                Automatically send reports to all team members
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setSettings({
+                  ...settings,
+                  emailScheduleEnabled: !settings.emailScheduleEnabled,
+                })
+              }
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                settings.emailScheduleEnabled ? "bg-blue-600" : "bg-gray-200"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  settings.emailScheduleEnabled ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Day and Time Selectors (only shown when enabled) */}
+          {settings.emailScheduleEnabled && (
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-600 mb-3">
+                Send reports every:
+              </p>
+              <div className="flex items-center gap-4">
+                <select
+                  value={settings.emailScheduleDay}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      emailScheduleDay: parseInt(e.target.value),
+                    })
+                  }
+                  className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  {DAYS_OF_WEEK.map((day) => (
+                    <option key={day.value} value={day.value}>
+                      {day.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-gray-500">at</span>
+                <select
+                  value={settings.emailScheduleHour}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      emailScheduleHour: parseInt(e.target.value),
+                    })
+                  }
+                  className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  {HOURS.map((hour) => (
+                    <option key={hour.value} value={hour.value}>
+                      {hour.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

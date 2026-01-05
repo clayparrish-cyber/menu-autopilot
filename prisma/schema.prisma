@@ -82,6 +82,11 @@ model Account {
   marginThreshold       Int       @default(60)
   allowPremiumPricing   Boolean   @default(false)
 
+  // Email schedule settings
+  emailScheduleEnabled  Boolean   @default(true)
+  emailScheduleDay      Int       @default(1)  // 1=Monday, 7=Sunday
+  emailScheduleHour     Int       @default(14) // 24h format, 14=2pm
+
   // Column mappings (JSON)
   columnMappings        Json?
 

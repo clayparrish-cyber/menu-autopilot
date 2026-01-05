@@ -16,6 +16,9 @@ export async function GET() {
         popularityThreshold: true,
         marginThreshold: true,
         allowPremiumPricing: true,
+        emailScheduleEnabled: true,
+        emailScheduleDay: true,
+        emailScheduleHour: true,
       },
     });
 
@@ -35,6 +38,9 @@ const settingsSchema = z.object({
   popularityThreshold: z.number().min(1).max(99),
   marginThreshold: z.number().min(1).max(99),
   allowPremiumPricing: z.boolean(),
+  emailScheduleEnabled: z.boolean(),
+  emailScheduleDay: z.number().min(1).max(7),
+  emailScheduleHour: z.number().min(0).max(23),
 });
 
 export async function PUT(req: NextRequest) {
