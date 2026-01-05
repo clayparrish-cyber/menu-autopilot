@@ -38,9 +38,10 @@ interface TableCellProps {
   header?: boolean;
   align?: "left" | "center" | "right";
   title?: string;
+  onClick?: () => void;
 }
 
-export function TableCell({ children, className = "", header = false, align = "left", title }: TableCellProps) {
+export function TableCell({ children, className = "", header = false, align = "left", title, onClick }: TableCellProps) {
   const alignClass = {
     left: "text-left",
     center: "text-center",
@@ -50,8 +51,9 @@ export function TableCell({ children, className = "", header = false, align = "l
   if (header) {
     return (
       <th
-        className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${alignClass} ${className} ${title ? "cursor-help" : ""}`}
+        className={`px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider ${alignClass} ${className} ${title ? "cursor-help" : ""}`}
         title={title}
+        onClick={onClick}
       >
         {children}
       </th>
@@ -59,7 +61,7 @@ export function TableCell({ children, className = "", header = false, align = "l
   }
 
   return (
-    <td className={`px-4 py-3 text-sm text-gray-900 ${alignClass} ${className}`} title={title}>
+    <td className={`px-3 py-3 text-sm text-gray-900 ${alignClass} ${className}`} title={title}>
       {children}
     </td>
   );

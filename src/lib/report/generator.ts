@@ -353,6 +353,7 @@ function findBiggestMarginLeak(
     category: item.category,
     estimatedLossUsd: round(biggest.weeklyLoss),
     diagnosis: `Food cost of ${item.foodCostPct.toFixed(1)}% exceeds target of ${targetFoodCostPct}%, eroding margin on a high-volume item.`,
+    confidence: mapConfidence(item.confidence),
     fixes: [
       {
         label: "PRICE",
@@ -559,17 +560,42 @@ function buildCategorySummary(
 }
 
 /**
+ * Build all items lookup for Menu Matrix display
+ */
+function buildAllItemsLookup(
+  items: ItemMetrics[]
+): WeeklyReportPayload["allItemsLookup"] {
+  const lookup: NonNullable<WeeklyReportPayload["allItemsLookup"]> = {};
+  for (const item of items) {
+    lookup[item.itemName] = {
+      qtySold: item.quantitySold,
+      avgPrice: item.avgPrice,
+      unitMargin: item.unitMargin,
+      quadrant: mapQuadrant(item.quadrant),
+    };
+  }
+  return lookup;
+}
+
+/**
  * Build recommendations table
  */
 function buildTopRecommendationsTable(
   items: ItemMetrics[]
 ): WeeklyReportPayload["topRecommendationsTable"] {
-  // Filter to items with actions (not just KEEP)
-  const actionable = items.filter(
-    (i) => i.recommendedAction !== "KEEP" || i.isAnchor
-  );
+  // Include all items - Stars with KEEP are positive reinforcement, not just problems
+  // Sort by impact: actionable items first, then Stars
+  const sorted = [...items].sort((a, b) => {
+    // Prioritize items that need action (not KEEP, unless anchor)
+    const aActionable = a.recommendedAction !== "KEEP" || a.isAnchor;
+    const bActionable = b.recommendedAction !== "KEEP" || b.isAnchor;
+    if (aActionable && !bActionable) return -1;
+    if (!aActionable && bActionable) return 1;
+    // Then by estimated impact
+    return b.estimatedImpact - a.estimatedImpact;
+  });
 
-  return actionable.slice(0, 20).map((item, index) => {
+  return sorted.slice(0, 20).map((item, index) => {
     let suggestedChangeText: string | undefined;
 
     switch (item.recommendedAction) {
@@ -693,5 +719,6 @@ export function generateWeeklyReportPayload(
     quadrantSummary: buildQuadrantSummary(items),
     categorySummary: buildCategorySummary(items),
     topRecommendationsTable: buildTopRecommendationsTable(items),
+    allItemsLookup: buildAllItemsLookup(items),
   };
 }

@@ -97,18 +97,19 @@ export function ActionBadge({
   action: "KEEP" | "PROMOTE" | "REPRICE" | "REPOSITION" | "REWORK_COST" | "REMOVE" | "KEEP_ANCHOR";
 }) {
   // Colored badges for actions - this is the key info to draw attention to
-  const config: Record<string, { label: string; className: string }> = {
-    KEEP: { label: "Keep", className: "bg-gray-100 text-gray-600" },
+  const config: Record<string, { label: string; className: string; icon?: string }> = {
+    KEEP: { label: "Performing", className: "bg-emerald-50 text-emerald-700 border border-emerald-200", icon: "✓" },
     PROMOTE: { label: "Promote", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
     REPRICE: { label: "Reprice", className: "bg-amber-50 text-amber-700 border border-amber-200" },
     REPOSITION: { label: "Reposition", className: "bg-blue-50 text-blue-700 border border-blue-200" },
     REWORK_COST: { label: "Rework cost", className: "bg-amber-50 text-amber-700 border border-amber-200" },
     REMOVE: { label: "Remove", className: "bg-red-50 text-red-700 border border-red-200" },
-    KEEP_ANCHOR: { label: "Keep", className: "bg-gray-100 text-gray-600" },
+    KEEP_ANCHOR: { label: "Anchor", className: "bg-gray-100 text-gray-600", icon: "⚓" },
   };
-  const { label, className } = config[action] || { label: action, className: "bg-gray-100 text-gray-600" };
+  const { label, className, icon } = config[action] || { label: action, className: "bg-gray-100 text-gray-600" };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>
+      {icon && <span>{icon}</span>}
       {label}
     </span>
   );

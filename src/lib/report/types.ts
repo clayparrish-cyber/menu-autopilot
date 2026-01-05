@@ -75,6 +75,7 @@ export interface MarginLeak {
   category?: string;
   estimatedLossUsd: number; // positive number
   diagnosis: string; // one sentence
+  confidence: Confidence;
   fixes: Array<{
     label: "PRICE" | "COST_SPEC" | "MENU_PLACEMENT";
     detail: string; // one sentence
@@ -176,5 +177,13 @@ export interface WeeklyReportPayload {
     unitMargin?: number;
     totalMargin?: number;
     suggestedChangeText?: string; // e.g. "+$1", "Promote", "Remove"
+  }>;
+
+  // All items lookup for Menu Matrix display (keyed by item name)
+  allItemsLookup?: Record<string, {
+    qtySold: number;
+    avgPrice: number;
+    unitMargin?: number;
+    quadrant?: Quadrant;
   }>;
 }

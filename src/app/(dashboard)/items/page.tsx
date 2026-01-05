@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Fragment } from "react";
 import Link from "next/link";
 import { Save, Upload, Anchor, X, AlertTriangle, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -262,8 +262,8 @@ export default function ItemsPage() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {sortedCategories.map((category) => (
-                  <>
-                    <tr key={`cat-${category}`} className="bg-gray-50">
+                  <Fragment key={category}>
+                    <tr className="bg-gray-50">
                       <td colSpan={3} className="px-4 py-2">
                         <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                           {category}
@@ -331,7 +331,7 @@ export default function ItemsPage() {
                         </tr>
                       );
                     })}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

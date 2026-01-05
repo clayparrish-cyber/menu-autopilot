@@ -215,6 +215,7 @@ interface MarginLeakCardProps {
   category?: string;
   estimatedLossUsd: number;
   diagnosis: string;
+  confidence?: string;
   fixes: Array<{ label: string; detail: string }>;
 }
 
@@ -228,6 +229,7 @@ export function MarginLeakCard({
   itemName,
   estimatedLossUsd,
   diagnosis,
+  confidence = "HIGH",
   fixes,
 }: MarginLeakCardProps) {
   // Get primary action for badge (first fix)
@@ -245,11 +247,14 @@ export function MarginLeakCard({
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
           {badgeLabel}
         </span>
-        <span className="text-sm text-red-600">
-          −${estimatedLossUsd.toFixed(0)}/week
+        <span className="text-xs text-gray-500">
+          {confidence.toLowerCase()} confidence
         </span>
       </div>
       <p className="text-sm text-gray-600 mb-3">{diagnosis}</p>
+      <p className="text-sm font-medium text-red-600 mb-3">
+        Margin leak: −${estimatedLossUsd.toFixed(0)}/week
+      </p>
       <p className="text-xs font-medium text-gray-700 mb-2">How to fix</p>
       <ul className="space-y-1.5">
         {fixes.map((fix, i) => (
@@ -295,12 +300,23 @@ export function EasyWinCard({
           {confidence.toLowerCase()} confidence
         </span>
       </div>
-      <p className="text-sm text-gray-600">{rationale}</p>
+      <p className="text-sm text-gray-600 mb-3">{rationale}</p>
       {estimatedUpsideUsd !== undefined && estimatedUpsideUsd > 0 && (
-        <p className="text-sm font-medium text-amber-700 mt-2">
-          Potential: +${estimatedUpsideUsd.toFixed(0)}/week
+        <p className="text-sm font-medium text-amber-700 mb-3">
+          Margin upside: +${estimatedUpsideUsd.toFixed(0)}/week
         </p>
       )}
+      <p className="text-xs font-medium text-gray-700 mb-2">How to win</p>
+      <ul className="space-y-1.5">
+        <li className="flex items-start gap-2 text-sm text-gray-600">
+          <span className="text-amber-400 mt-0.5">•</span>
+          <span>Move to a higher-visibility menu position</span>
+        </li>
+        <li className="flex items-start gap-2 text-sm text-gray-600">
+          <span className="text-amber-400 mt-0.5">•</span>
+          <span>Add server talking points to increase recommendations</span>
+        </li>
+      </ul>
     </Card>
   );
 }

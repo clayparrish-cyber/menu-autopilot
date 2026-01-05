@@ -4,12 +4,36 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+const isDev = process.env.NODE_ENV === "development";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isDevLoading, setIsDevLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+
+  const handleDevLogin = async () => {
+    setIsDevLoading(true);
+    setError(null);
+    try {
+      const result = await signIn("dev-login", {
+        email: "demo@example.com",
+        callbackUrl: "/reports",
+        redirect: false,
+      });
+      if (result?.error) {
+        setError("Dev login failed. Run: npx tsx prisma/seed.ts");
+      } else if (result?.ok) {
+        window.location.href = "/reports";
+      }
+    } catch {
+      setError("Dev login failed");
+    } finally {
+      setIsDevLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +110,20 @@ export default function LoginPage() {
         <p className="mt-4 text-center text-xs text-gray-500">
           We&apos;ll send you a magic link to sign in. No password needed.
         </p>
+
+        {isDev && (
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <p className="text-center text-xs text-gray-500 mb-3">Development Mode</p>
+            <button
+              type="button"
+              onClick={handleDevLogin}
+              disabled={isDevLoading}
+              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {isDevLoading ? "Signing in..." : "Dev Login (demo@example.com)"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

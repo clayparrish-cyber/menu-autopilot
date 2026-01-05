@@ -21,7 +21,21 @@
       "Bash(npx prisma generate:*)",
       "Bash(npm run validate:sample-report:*)",
       "Bash(pkill:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(lsof:*)",
+      "Bash(curl:*)",
+      "Bash(pg_isready:*)",
+      "Bash(brew services:*)",
+      "Bash(docker run:*)",
+      "Bash(postgres:15-alpine)",
+      "Bash(/opt/homebrew/opt/postgresql@15/bin/createuser:*)",
+      "Bash(/opt/homebrew/opt/postgresql@15/bin/createdb:*)",
+      "Bash(rm:*)",
+      "Bash(npm ls:*)",
+      "Bash(git diff:*)",
+      "Bash(npx tsx:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yeah good call\" npx prisma migrate reset:*)"
     ]
   }
 }

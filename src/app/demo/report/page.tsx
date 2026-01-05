@@ -239,6 +239,7 @@ function ReportPageView({ report }: { report: WeeklyReportPayload }) {
                 category={report.biggestMarginLeak.category}
                 estimatedLossUsd={report.biggestMarginLeak.estimatedLossUsd}
                 diagnosis={report.biggestMarginLeak.diagnosis}
+                confidence={report.biggestMarginLeak.confidence}
                 fixes={report.biggestMarginLeak.fixes}
               />
             )}

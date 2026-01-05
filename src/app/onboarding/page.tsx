@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { CHANNEL_OPTIONS, getLocationSettingsFromChannel } from "@/lib/channel";
@@ -8,10 +8,17 @@ import type { Channel } from "@prisma/client";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { data: session, update } = useSession();
+  const { data: session, status, update } = useSession();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
 
   const [formData, setFormData] = useState({
     channel: "BAR_KITCHEN" as Channel,
@@ -59,10 +66,10 @@ export default function OnboardingPage() {
     }
   };
 
-  if (!session) {
+  if (status === "loading" || !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }

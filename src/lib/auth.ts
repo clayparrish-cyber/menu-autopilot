@@ -1,7 +1,32 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./db";
+
+// Dev-only credentials provider for testing
+const devCredentialsProvider = CredentialsProvider({
+  id: "dev-login",
+  name: "Dev Login",
+  credentials: {
+    email: { label: "Email", type: "email" },
+  },
+  async authorize(credentials) {
+    if (process.env.NODE_ENV !== "development") {
+      return null;
+    }
+    if (!credentials?.email) return null;
+
+    const user = await prisma.user.findUnique({
+      where: { email: credentials.email },
+    });
+
+    if (user) {
+      return { id: user.id, email: user.email, name: user.name };
+    }
+    return null;
+  },
+});
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
@@ -17,6 +42,8 @@ export const authOptions: NextAuthOptions = {
       },
       from: process.env.EMAIL_FROM || "Menu Autopilot <noreply@menuautopilot.com>",
     }),
+    // Only include dev login in development
+    ...(process.env.NODE_ENV === "development" ? [devCredentialsProvider] : []),
   ],
   session: {
     strategy: "jwt",
