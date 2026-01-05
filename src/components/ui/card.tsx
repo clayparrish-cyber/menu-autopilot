@@ -268,8 +268,8 @@ export function MarginLeakCard({
   );
 }
 
-// Easy win card - uses amber/gold to indicate opportunity (not "all good")
-interface EasyWinCardProps {
+// Top Opportunity card (renamed from Easy Win) - uses amber/gold to indicate opportunity
+interface TopOpportunityCardProps {
   itemName: string;
   category?: string;
   action: string;
@@ -278,18 +278,18 @@ interface EasyWinCardProps {
   estimatedUpsideUsd?: number;
 }
 
-export function EasyWinCard({
+export function TopOpportunityCard({
   itemName,
   action,
   confidence,
   rationale,
   estimatedUpsideUsd,
-}: EasyWinCardProps) {
+}: TopOpportunityCardProps) {
   return (
     <Card className="p-5 bg-amber-50 border border-amber-200">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-amber-600 text-lg">🎯</span>
-        <h4 className="text-sm font-semibold text-amber-900">Easiest Win</h4>
+        <h4 className="text-sm font-semibold text-amber-900">Top Opportunity</h4>
       </div>
       <p className="text-base font-medium text-gray-900 mb-1">{itemName}</p>
       <div className="flex items-center gap-2 mb-3">
@@ -303,10 +303,10 @@ export function EasyWinCard({
       <p className="text-sm text-gray-600 mb-3">{rationale}</p>
       {estimatedUpsideUsd !== undefined && estimatedUpsideUsd > 0 && (
         <p className="text-sm font-medium text-amber-700 mb-3">
-          Margin upside: +${estimatedUpsideUsd.toFixed(0)}/week
+          Potential upside: +${estimatedUpsideUsd.toLocaleString()}/week
         </p>
       )}
-      <p className="text-xs font-medium text-gray-700 mb-2">How to win</p>
+      <p className="text-xs font-medium text-gray-700 mb-2">How to capture</p>
       <ul className="space-y-1.5">
         <li className="flex items-start gap-2 text-sm text-gray-600">
           <span className="text-amber-400 mt-0.5">•</span>
@@ -317,6 +317,69 @@ export function EasyWinCard({
           <span>Add server talking points to increase recommendations</span>
         </li>
       </ul>
+    </Card>
+  );
+}
+
+// Alias for backwards compatibility
+export const EasyWinCard = TopOpportunityCard;
+
+// Recent Win card - shows improvements vs historical average (green/positive)
+interface RecentWinCardProps {
+  wins: Array<{
+    itemName: string;
+    category?: string;
+    metricLabel: string;
+    weeklyImpactUsd: number;
+    comparisonPeriod: string;
+  }>;
+}
+
+export function RecentWinCard({ wins }: RecentWinCardProps) {
+  if (wins.length === 0) {
+    return (
+      <Card className="p-5 bg-gray-50 border border-gray-200">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-gray-400 text-lg">📊</span>
+          <h4 className="text-sm font-semibold text-gray-600">Recent Progress</h4>
+        </div>
+        <p className="text-sm text-gray-500">
+          No significant changes this week. Keep monitoring — improvements will show here.
+        </p>
+      </Card>
+    );
+  }
+
+  // Show up to 3 wins
+  const topWins = wins.slice(0, 3);
+  const totalImpact = topWins.reduce((sum, w) => sum + w.weeklyImpactUsd, 0);
+
+  return (
+    <Card className="p-5 bg-emerald-50 border border-emerald-200">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-emerald-600 text-lg">🎉</span>
+        <h4 className="text-sm font-semibold text-emerald-900">Recent Wins</h4>
+      </div>
+
+      <div className="space-y-3">
+        {topWins.map((win, i) => (
+          <div key={i} className={i > 0 ? "pt-3 border-t border-emerald-100" : ""}>
+            <p className="text-sm font-medium text-gray-900">{win.itemName}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{win.metricLabel} {win.comparisonPeriod}</p>
+            <p className="text-sm font-medium text-emerald-700 mt-1">
+              +${win.weeklyImpactUsd.toLocaleString()}/week impact
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {topWins.length > 1 && (
+        <div className="mt-3 pt-3 border-t border-emerald-200">
+          <p className="text-sm font-semibold text-emerald-800">
+            Total: +${totalImpact.toLocaleString()}/week
+          </p>
+        </div>
+      )}
     </Card>
   );
 }

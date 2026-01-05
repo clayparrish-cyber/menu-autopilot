@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { sendReportEmail, getAccountMembers } from "./service";
-import { generateWeeklyReportPayload, getPriorWeekSnapshot, transformMetricsToItems } from "@/lib/report";
+import { generateWeeklyReportPayload, getPriorWeekSnapshot, findRecentWins, transformMetricsToItems } from "@/lib/report";
 import { generateScoringResult } from "@/lib/scoring/engine";
 
 interface SchedulerResult {
@@ -71,7 +71,11 @@ export async function processScheduledEmails(): Promise<SchedulerResult> {
         const items = transformMetricsToItems(report.week.metrics);
         const scoringResult = generateScoringResult(items);
         const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-        const priorWeekSummary = await getPriorWeekSnapshot(report.week.locationId, report.week.weekStart);
+
+        const [priorWeekSummary, recentWins] = await Promise.all([
+          getPriorWeekSnapshot(report.week.locationId, report.week.weekStart),
+          findRecentWins(report.week.locationId, report.week.weekStart, scoringResult.items),
+        ]);
 
         const payload = generateWeeklyReportPayload({
           reportId: report.id,
@@ -84,6 +88,7 @@ export async function processScheduledEmails(): Promise<SchedulerResult> {
           targetFoodCostPct: account.targetFoodCostPct,
           channel: report.week.location.channel,
           priorWeekSummary,
+          recentWins,
         });
 
         const sendResult = await sendReportEmail(

@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowLeft, Download, ExternalLink, ChevronUp, ChevronDown, Mail } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, ChevronUp, ChevronDown, Mail, Search, X } from "lucide-react";
 import type { WeeklyReportPayload } from "@/lib/report/types";
 import { ItemDetailModal } from "@/components/ui/item-detail-modal";
 import { EmailReportDialog } from "@/components/ui/email-report-dialog";
@@ -15,7 +15,8 @@ import {
   ActionCard,
   SummaryCard,
   MarginLeakCard,
-  EasyWinCard,
+  TopOpportunityCard,
+  RecentWinCard,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,12 +45,31 @@ export default function ReportDetailPage() {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState<string>("qty");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [actionFilter, setActionFilter] = useState<string>("");
+  const [quadrantFilter, setQuadrantFilter] = useState<string>("");
 
-  // Sort the recommendations table
+  // Filter and sort the recommendations table
   const sortedRecommendations = useMemo(() => {
     if (!report?.topRecommendationsTable) return [];
-    const items = [...report.topRecommendationsTable];
 
+    // Apply filters
+    let items = report.topRecommendationsTable.filter((row) => {
+      // Search filter (item name or category)
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const nameMatch = row.itemName.toLowerCase().includes(query);
+        const categoryMatch = row.category?.toLowerCase().includes(query);
+        if (!nameMatch && !categoryMatch) return false;
+      }
+      // Action filter
+      if (actionFilter && row.action !== actionFilter) return false;
+      // Quadrant filter
+      if (quadrantFilter && row.quadrant !== quadrantFilter) return false;
+      return true;
+    });
+
+    items = [...items];
     items.sort((a, b) => {
       let aVal: number | string = 0;
       let bVal: number | string = 0;
@@ -101,7 +121,7 @@ export default function ReportDetailPage() {
     });
 
     return items;
-  }, [report?.topRecommendationsTable, sortColumn, sortDirection]);
+  }, [report?.topRecommendationsTable, sortColumn, sortDirection, searchQuery, actionFilter, quadrantFilter]);
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -296,7 +316,7 @@ export default function ReportDetailPage() {
                 <Card className="p-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide">Revenue</p>
                   <p className="text-2xl font-semibold text-gray-900">
-                    ${current.revenue.toLocaleString()}
+                    ${current.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
                   <div className="mt-1 flex items-center gap-2">
                     <DeltaBadge delta={revenueDelta} />
@@ -390,36 +410,60 @@ export default function ReportDetailPage() {
         </div>
       </section>
 
-      {/* Margin Leak + Easy Win */}
-      {(report.biggestMarginLeak || report.easiestWin) && (
-        <section className="mb-8">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">
-            At a glance
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {report.biggestMarginLeak && (
-              <MarginLeakCard
-                itemName={report.biggestMarginLeak.itemName}
-                category={report.biggestMarginLeak.category}
-                estimatedLossUsd={report.biggestMarginLeak.estimatedLossUsd}
-                diagnosis={report.biggestMarginLeak.diagnosis}
-                confidence={report.biggestMarginLeak.confidence}
-                fixes={report.biggestMarginLeak.fixes}
-              />
-            )}
-            {report.easiestWin && (
-              <EasyWinCard
-                itemName={report.easiestWin.itemName}
-                category={report.easiestWin.category}
-                action={report.easiestWin.action}
-                confidence={report.easiestWin.confidence}
-                rationale={report.easiestWin.rationale}
-                estimatedUpsideUsd={report.easiestWin.estimatedUpsideUsd}
-              />
-            )}
-          </div>
-        </section>
-      )}
+      {/* At a Glance: Recent Win, Top Opportunity, Biggest Leak */}
+      <section className="mb-8">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">
+          At a glance
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Recent Wins - shows actual improvements */}
+          <RecentWinCard wins={report.recentWins || []} />
+
+          {/* Top Opportunity - easiest action to take */}
+          {report.topOpportunity ? (
+            <TopOpportunityCard
+              itemName={report.topOpportunity.itemName}
+              category={report.topOpportunity.category}
+              action={report.topOpportunity.action}
+              confidence={report.topOpportunity.confidence}
+              rationale={report.topOpportunity.rationale}
+              estimatedUpsideUsd={report.topOpportunity.estimatedUpsideUsd}
+            />
+          ) : (
+            <Card className="p-5 bg-gray-50 border border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-gray-400 text-lg">🎯</span>
+                <h4 className="text-sm font-semibold text-gray-600">Top Opportunity</h4>
+              </div>
+              <p className="text-sm text-gray-500">
+                No clear opportunities identified this week.
+              </p>
+            </Card>
+          )}
+
+          {/* Biggest Margin Leak - most urgent problem */}
+          {report.biggestMarginLeak ? (
+            <MarginLeakCard
+              itemName={report.biggestMarginLeak.itemName}
+              category={report.biggestMarginLeak.category}
+              estimatedLossUsd={report.biggestMarginLeak.estimatedLossUsd}
+              diagnosis={report.biggestMarginLeak.diagnosis}
+              confidence={report.biggestMarginLeak.confidence}
+              fixes={report.biggestMarginLeak.fixes}
+            />
+          ) : (
+            <Card className="p-5 bg-gray-50 border border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-gray-400 text-lg">📉</span>
+                <h4 className="text-sm font-semibold text-gray-600">Margin Leaks</h4>
+              </div>
+              <p className="text-sm text-gray-500">
+                No significant margin leaks detected.
+              </p>
+            </Card>
+          )}
+        </div>
+      </section>
 
       {/* Watch List */}
       {report.watchList && report.watchList.length > 0 && (
@@ -520,6 +564,75 @@ export default function ReportDetailPage() {
             )}
           </div>
 
+          {/* Filter controls */}
+          <div className="flex flex-wrap gap-3 mb-4">
+            {/* Search input */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {/* Action filter */}
+            <select
+              value={actionFilter}
+              onChange={(e) => setActionFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Actions</option>
+              <option value="KEEP">Performing</option>
+              <option value="PROMOTE">Promote</option>
+              <option value="REPRICE">Reprice</option>
+              <option value="REPOSITION">Reposition</option>
+              <option value="REWORK_COST">Rework Cost</option>
+              <option value="REMOVE">Remove</option>
+            </select>
+            {/* Quadrant filter */}
+            <select
+              value={quadrantFilter}
+              onChange={(e) => setQuadrantFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Quadrants</option>
+              <option value="STAR">Stars</option>
+              <option value="PLOWHORSE">Plowhorses</option>
+              <option value="PUZZLE">Puzzles</option>
+              <option value="DOG">Dogs</option>
+            </select>
+            {/* Clear filters */}
+            {(searchQuery || actionFilter || quadrantFilter) && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setActionFilter("");
+                  setQuadrantFilter("");
+                }}
+                className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* Results count */}
+          {(searchQuery || actionFilter || quadrantFilter) && (
+            <p className="text-sm text-gray-500 mb-3">
+              Showing {sortedRecommendations.length} of {report.topRecommendationsTable.length} items
+            </p>
+          )}
+
           <Card className="overflow-hidden">
             <Table>
               <TableHeader>
@@ -534,7 +647,7 @@ export default function ReportDetailPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedRecommendations.slice(0, 20).map((row) => (
+                {((searchQuery || actionFilter || quadrantFilter) ? sortedRecommendations : sortedRecommendations.slice(0, 20)).map((row) => (
                   <TableRow
                     key={row.itemName}
                     className="cursor-pointer hover:bg-gray-50 transition-colors"

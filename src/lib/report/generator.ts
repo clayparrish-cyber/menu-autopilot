@@ -4,6 +4,8 @@ import type {
   ActionCard,
   MarginLeak,
   EasyWin,
+  TopOpportunity,
+  RecentWin,
   WatchItem,
   DataQuality,
   SuggestedChange,
@@ -29,6 +31,7 @@ export interface ReportGeneratorInput {
   mappingWarnings?: string[];
   channel?: Channel;
   priorWeekSummary?: WeekSummaryTotals | null;
+  recentWins?: RecentWin[];
 }
 
 /**
@@ -372,7 +375,7 @@ function findBiggestMarginLeak(
 /**
  * Find easiest win (high-margin puzzle with good confidence)
  */
-function findEasiestWin(items: ItemMetrics[]): EasyWin | undefined {
+function findTopOpportunity(items: ItemMetrics[]): TopOpportunity | undefined {
   const puzzles = items.filter(
     (i) =>
       i.quadrant === "PUZZLE" &&
@@ -396,6 +399,11 @@ function findEasiestWin(items: ItemMetrics[]): EasyWin | undefined {
     rationale: `High margin of $${best.unitMargin.toFixed(2)}/unit but low sales — better visibility could unlock profit.`,
     estimatedUpsideUsd: estimatedUpside > 0 ? round(estimatedUpside) : undefined,
   };
+}
+
+// Alias for backwards compatibility
+function findEasiestWin(items: ItemMetrics[]): EasyWin | undefined {
+  return findTopOpportunity(items);
 }
 
 /**
@@ -494,7 +502,7 @@ function generateEstimatedUpsideRange(items: ItemMetrics[]): string | undefined 
 
   if (low < 50) return undefined; // Not worth mentioning
 
-  return `$${low}–$${high}/week`;
+  return `$${low.toLocaleString()}–$${high.toLocaleString()}/week`;
 }
 
 /**
@@ -660,6 +668,7 @@ export function generateWeeklyReportPayload(
     mappingWarnings,
     channel,
     priorWeekSummary,
+    recentWins,
   } = input;
 
   const items = scoringResult.items;
@@ -707,7 +716,9 @@ export function generateWeeklyReportPayload(
 
     topActions: actionCards,
     biggestMarginLeak: findBiggestMarginLeak(items, targetFoodCostPct),
-    easiestWin: findEasiestWin(items),
+    topOpportunity: findTopOpportunity(items),
+    recentWins: recentWins && recentWins.length > 0 ? recentWins : undefined,
+    easiestWin: findEasiestWin(items), // kept for backwards compat
 
     watchList: buildWatchList(items),
 

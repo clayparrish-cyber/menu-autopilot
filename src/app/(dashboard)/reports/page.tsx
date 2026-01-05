@@ -116,34 +116,38 @@ export default function ReportsPage() {
                     {report.summary.totalItems} items
                   </p>
                   <p className="text-xs text-gray-500">
-                    ${report.summary.totalRevenue.toLocaleString()} revenue
+                    ${report.summary.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })} revenue
                   </p>
                 </div>
 
-                <div className="flex space-x-4 text-xs">
+                <div className="flex space-x-6 text-sm">
+                  {/* Margin % */}
                   <div className="text-center">
-                    <span className="inline-block w-6 h-6 rounded-full bg-green-100 text-green-700 font-medium leading-6">
-                      {report.summary.stars}
-                    </span>
-                    <p className="text-gray-500 mt-1">Stars</p>
+                    {(() => {
+                      const marginPct = report.summary.totalRevenue > 0
+                        ? (report.summary.totalMargin / report.summary.totalRevenue) * 100
+                        : 0;
+                      const color = marginPct >= 70 ? 'text-emerald-600' : marginPct >= 60 ? 'text-amber-600' : 'text-red-600';
+                      return (
+                        <>
+                          <p className={`font-semibold ${color}`}>{marginPct.toFixed(0)}%</p>
+                          <p className="text-xs text-gray-500">margin</p>
+                        </>
+                      );
+                    })()}
                   </div>
+                  {/* Items needing action */}
                   <div className="text-center">
-                    <span className="inline-block w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-medium leading-6">
-                      {report.summary.plowhorses}
-                    </span>
-                    <p className="text-gray-500 mt-1">PH</p>
-                  </div>
-                  <div className="text-center">
-                    <span className="inline-block w-6 h-6 rounded-full bg-yellow-100 text-yellow-700 font-medium leading-6">
-                      {report.summary.puzzles}
-                    </span>
-                    <p className="text-gray-500 mt-1">Puz</p>
-                  </div>
-                  <div className="text-center">
-                    <span className="inline-block w-6 h-6 rounded-full bg-red-100 text-red-700 font-medium leading-6">
-                      {report.summary.dogs}
-                    </span>
-                    <p className="text-gray-500 mt-1">Dogs</p>
+                    {(() => {
+                      const needsAction = report.summary.plowhorses + report.summary.puzzles + report.summary.dogs;
+                      const color = needsAction > 10 ? 'text-red-600' : needsAction > 5 ? 'text-amber-600' : 'text-gray-900';
+                      return (
+                        <>
+                          <p className={`font-semibold ${color}`}>{needsAction}</p>
+                          <p className="text-xs text-gray-500">need action</p>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 

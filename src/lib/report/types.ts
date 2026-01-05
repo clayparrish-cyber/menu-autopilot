@@ -91,6 +91,28 @@ export interface EasyWin {
   estimatedUpsideUsd?: number;
 }
 
+// Renamed version of EasyWin for clarity
+export interface TopOpportunity {
+  itemName: string;
+  category?: string;
+  action: ActionLabel;
+  confidence: Confidence;
+  rationale: string; // one sentence
+  estimatedUpsideUsd?: number;
+}
+
+export interface RecentWin {
+  itemName: string;
+  category?: string;
+  // What improved and by how much
+  metricType: "MARGIN_PCT" | "MARGIN_DOLLARS" | "REVENUE";
+  metricLabel: string; // e.g., "Margin improved 12%", "Revenue up $450"
+  // The actual impact
+  weeklyImpactUsd: number; // positive = good
+  // Context
+  comparisonPeriod: string; // e.g., "vs 4-week avg"
+}
+
 export interface WatchItem {
   itemName: string;
   category?: string;
@@ -135,7 +157,9 @@ export interface WeeklyReportPayload {
 
   topActions: ActionCard[]; // at least 3
   biggestMarginLeak?: MarginLeak;
-  easiestWin?: EasyWin;
+  topOpportunity?: TopOpportunity; // renamed from easiestWin
+  recentWins?: RecentWin[]; // items that improved vs 4-week avg
+  easiestWin?: EasyWin; // deprecated, kept for backwards compat
 
   watchList?: WatchItem[]; // 0–5
   anomalies?: Anomalies;

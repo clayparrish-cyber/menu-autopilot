@@ -4,6 +4,6 @@ export { WeeklyReportPayloadSchema } from "./schema";
 export { generateWeeklyReportPayload } from "./generator";
 export type { ReportGeneratorInput } from "./generator";
 export { pdfSpec } from "./pdfSpec";
-export { computeWeekSummary, saveWeekSnapshot, getPriorWeekSnapshot } from "./snapshot";
+export { computeWeekSummary, saveWeekSnapshot, getPriorWeekSnapshot, findRecentWins } from "./snapshot";
 export { transformMetricsToItems } from "./transform";
 export type { DbMetricWithItem } from "./transform";

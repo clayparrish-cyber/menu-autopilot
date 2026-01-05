@@ -234,6 +234,32 @@
     "rationale": "High margin of $17.50/unit but low sales - better visibility could unlock profit.",
     "estimatedUpsideUsd": 315
   },
+  "topOpportunity": {
+    "itemName": "Pan-Seared Salmon",
+    "category": "Entrees",
+    "action": "REPOSITION",
+    "confidence": "MEDIUM",
+    "rationale": "High margin of $17.50/unit but low sales - better visibility could unlock profit.",
+    "estimatedUpsideUsd": 315
+  },
+  "recentWins": [
+    {
+      "itemName": "Craft Burger",
+      "category": "Entrees",
+      "metricType": "MARGIN_PCT",
+      "metricLabel": "Margin improved 8%",
+      "weeklyImpactUsd": 245,
+      "comparisonPeriod": "vs 4-week avg"
+    },
+    {
+      "itemName": "House Salad",
+      "category": "Salads",
+      "metricType": "REVENUE",
+      "metricLabel": "Revenue up $180",
+      "weeklyImpactUsd": 180,
+      "comparisonPeriod": "vs 4-week avg"
+    }
+  ],
   "watchList": [
     {
       "itemName": "Truffle Fries",

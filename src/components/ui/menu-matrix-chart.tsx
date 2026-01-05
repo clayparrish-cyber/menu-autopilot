@@ -14,8 +14,6 @@ export interface MenuMatrixItem {
 
 interface MenuMatrixChartProps {
   items: MenuMatrixItem[];
-  popularityThreshold?: number; // percentile (0-100)
-  marginThreshold?: number; // percentile (0-100)
 }
 
 const QUADRANT_COLORS = {
@@ -32,11 +30,7 @@ const QUADRANT_LABELS = {
   DOG: { emoji: "🐕", name: "Dogs" },
 };
 
-export function MenuMatrixChart({
-  items,
-  popularityThreshold = 50,
-  marginThreshold = 50,
-}: MenuMatrixChartProps) {
+export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
   const [hoveredItem, setHoveredItem] = useState<MenuMatrixItem | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -47,8 +41,8 @@ export function MenuMatrixChart({
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  // Calculate scales and thresholds
-  const { xScale, yScale, xThreshold, yThreshold, maxQty, maxMargin } = useMemo(() => {
+  // Calculate scales with dynamic zoom to fit data
+  const { xScale, yScale, minQty, maxQty, minMargin, maxMargin } = useMemo(() => {
     const quantities = items.map((i) => i.qtySold);
     const margins = items.map((i) => {
       if (i.unitMargin !== undefined && i.avgPrice > 0) {
@@ -57,28 +51,34 @@ export function MenuMatrixChart({
       return 0;
     });
 
-    const maxQ = Math.max(...quantities, 1);
-    const maxM = Math.max(...margins, 100);
+    // Calculate actual data bounds
+    const dataMinQ = Math.min(...quantities);
+    const dataMaxQ = Math.max(...quantities, 1);
+    const dataMinM = Math.min(...margins);
+    const dataMaxM = Math.max(...margins, 50);
 
-    // Sort for percentile calculation
-    const sortedQty = [...quantities].sort((a, b) => a - b);
-    const sortedMargin = [...margins].sort((a, b) => a - b);
+    // Add 10% padding on each side for breathing room
+    const qtyRange = dataMaxQ - dataMinQ || dataMaxQ * 0.5;
+    const marginRange = dataMaxM - dataMinM || 20;
 
-    const qtyIdx = Math.floor((popularityThreshold / 100) * sortedQty.length);
-    const marginIdx = Math.floor((marginThreshold / 100) * sortedMargin.length);
+    const minQ = Math.max(0, dataMinQ - qtyRange * 0.1);
+    const maxQ = dataMaxQ + qtyRange * 0.1;
+    const minM = Math.max(0, dataMinM - marginRange * 0.1);
+    const maxM = Math.min(100, dataMaxM + marginRange * 0.1);
 
-    const xThresh = sortedQty[qtyIdx] || maxQ / 2;
-    const yThresh = sortedMargin[marginIdx] || 50;
+    // Scale functions that map data values to pixel positions
+    const xScaleFn = (qty: number) => ((qty - minQ) / (maxQ - minQ)) * chartWidth;
+    const yScaleFn = (margin: number) => chartHeight - ((margin - minM) / (maxM - minM)) * chartHeight;
 
     return {
-      xScale: (qty: number) => (qty / maxQ) * chartWidth,
-      yScale: (margin: number) => chartHeight - (margin / maxM) * chartHeight,
-      xThreshold: (xThresh / maxQ) * chartWidth,
-      yThreshold: chartHeight - (yThresh / maxM) * chartHeight,
+      xScale: xScaleFn,
+      yScale: yScaleFn,
+      minQty: minQ,
       maxQty: maxQ,
+      minMargin: minM,
       maxMargin: maxM,
     };
-  }, [items, popularityThreshold, marginThreshold, chartWidth, chartHeight]);
+  }, [items, chartWidth, chartHeight]);
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -98,74 +98,35 @@ export function MenuMatrixChart({
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredItem(null)}
       >
-        {/* Quadrant backgrounds */}
+        {/* Chart area */}
         <g transform={`translate(${padding.left}, ${padding.top})`}>
-          {/* Top-left: Plowhorses (high popularity, low margin) */}
-          <rect
-            x={xThreshold}
-            y={yThreshold}
-            width={chartWidth - xThreshold}
-            height={chartHeight - yThreshold}
-            fill={QUADRANT_COLORS.PLOWHORSE.bg}
-          />
-          {/* Top-right: Stars (high popularity, high margin) */}
-          <rect
-            x={xThreshold}
-            y={0}
-            width={chartWidth - xThreshold}
-            height={yThreshold}
-            fill={QUADRANT_COLORS.STAR.bg}
-          />
-          {/* Bottom-left: Dogs (low popularity, low margin) */}
-          <rect
-            x={0}
-            y={yThreshold}
-            width={xThreshold}
-            height={chartHeight - yThreshold}
-            fill={QUADRANT_COLORS.DOG.bg}
-          />
-          {/* Bottom-right: Puzzles (low popularity, high margin) */}
+          {/* Light background */}
           <rect
             x={0}
             y={0}
-            width={xThreshold}
-            height={yThreshold}
-            fill={QUADRANT_COLORS.PUZZLE.bg}
+            width={chartWidth}
+            height={chartHeight}
+            fill="#f9fafb"
+            rx={4}
           />
 
-          {/* Threshold lines */}
+          {/* Grid lines for reference */}
           <line
-            x1={xThreshold}
+            x1={chartWidth / 2}
             y1={0}
-            x2={xThreshold}
+            x2={chartWidth / 2}
             y2={chartHeight}
-            stroke="#9ca3af"
-            strokeDasharray="4 4"
+            stroke="#e5e7eb"
             strokeWidth={1}
           />
           <line
             x1={0}
-            y1={yThreshold}
+            y1={chartHeight / 2}
             x2={chartWidth}
-            y2={yThreshold}
-            stroke="#9ca3af"
-            strokeDasharray="4 4"
+            y2={chartHeight / 2}
+            stroke="#e5e7eb"
             strokeWidth={1}
           />
-
-          {/* Quadrant labels in corners */}
-          <text x={chartWidth - 8} y={16} textAnchor="end" className="fill-emerald-700 text-xs font-medium">
-            {QUADRANT_LABELS.STAR.emoji} Stars
-          </text>
-          <text x={chartWidth - 8} y={chartHeight - 8} textAnchor="end" className="fill-blue-700 text-xs font-medium">
-            {QUADRANT_LABELS.PLOWHORSE.emoji} Plowhorses
-          </text>
-          <text x={8} y={16} textAnchor="start" className="fill-amber-700 text-xs font-medium">
-            {QUADRANT_LABELS.PUZZLE.emoji} Puzzles
-          </text>
-          <text x={8} y={chartHeight - 8} textAnchor="start" className="fill-red-700 text-xs font-medium">
-            {QUADRANT_LABELS.DOG.emoji} Dogs
-          </text>
 
           {/* Data points */}
           {items.map((item, i) => {
@@ -223,13 +184,13 @@ export function MenuMatrixChart({
 
         {/* Axis tick labels */}
         <text x={padding.left} y={height - 30} textAnchor="start" className="fill-gray-500 text-[10px]">
-          0
+          {Math.round(minQty)}
         </text>
         <text x={padding.left + chartWidth} y={height - 30} textAnchor="end" className="fill-gray-500 text-[10px]">
-          {maxQty}
+          {Math.round(maxQty)}
         </text>
         <text x={padding.left - 8} y={padding.top + chartHeight} textAnchor="end" className="fill-gray-500 text-[10px]">
-          0%
+          {Math.round(minMargin)}%
         </text>
         <text x={padding.left - 8} y={padding.top + 4} textAnchor="end" className="fill-gray-500 text-[10px]">
           {Math.round(maxMargin)}%

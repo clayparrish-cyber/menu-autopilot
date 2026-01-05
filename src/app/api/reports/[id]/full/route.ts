@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAuthContext, handleApiError, hasLocationAccess, errorResponse } from "@/lib/api";
-import { generateWeeklyReportPayload, getPriorWeekSnapshot, transformMetricsToItems } from "@/lib/report";
+import { generateWeeklyReportPayload, getPriorWeekSnapshot, findRecentWins, transformMetricsToItems } from "@/lib/report";
 import { generateScoringResult } from "@/lib/scoring/engine";
 
 export async function GET(
@@ -42,10 +42,10 @@ export async function GET(
     const scoringResult = generateScoringResult(items);
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
-    const priorWeekSummary = await getPriorWeekSnapshot(
-      report.week.locationId,
-      report.week.weekStart
-    );
+    const [priorWeekSummary, recentWins] = await Promise.all([
+      getPriorWeekSnapshot(report.week.locationId, report.week.weekStart),
+      findRecentWins(report.week.locationId, report.week.weekStart, scoringResult.items),
+    ]);
 
     const payload = generateWeeklyReportPayload({
       reportId: report.id,
@@ -58,6 +58,7 @@ export async function GET(
       targetFoodCostPct: ctx.account.targetFoodCostPct || 30,
       channel: report.week.location.channel,
       priorWeekSummary,
+      recentWins,
     });
 
     return NextResponse.json(payload);

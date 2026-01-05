@@ -11,7 +11,8 @@ import {
   ActionCard,
   SummaryCard,
   MarginLeakCard,
-  EasyWinCard,
+  TopOpportunityCard,
+  RecentWinCard,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -226,36 +227,60 @@ function ReportPageView({ report }: { report: WeeklyReportPayload }) {
         </div>
       </section>
 
-      {/* Margin Leak + Easy Win */}
-      {(report.biggestMarginLeak || report.easiestWin) && (
-        <section className="mb-8">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">
-            At a glance
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {report.biggestMarginLeak && (
-              <MarginLeakCard
-                itemName={report.biggestMarginLeak.itemName}
-                category={report.biggestMarginLeak.category}
-                estimatedLossUsd={report.biggestMarginLeak.estimatedLossUsd}
-                diagnosis={report.biggestMarginLeak.diagnosis}
-                confidence={report.biggestMarginLeak.confidence}
-                fixes={report.biggestMarginLeak.fixes}
-              />
-            )}
-            {report.easiestWin && (
-              <EasyWinCard
-                itemName={report.easiestWin.itemName}
-                category={report.easiestWin.category}
-                action={report.easiestWin.action}
-                confidence={report.easiestWin.confidence}
-                rationale={report.easiestWin.rationale}
-                estimatedUpsideUsd={report.easiestWin.estimatedUpsideUsd}
-              />
-            )}
-          </div>
-        </section>
-      )}
+      {/* At a Glance: Recent Win, Top Opportunity, Biggest Leak */}
+      <section className="mb-8">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">
+          At a glance
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Recent Wins */}
+          <RecentWinCard wins={report.recentWins || []} />
+
+          {/* Top Opportunity */}
+          {report.topOpportunity ? (
+            <TopOpportunityCard
+              itemName={report.topOpportunity.itemName}
+              category={report.topOpportunity.category}
+              action={report.topOpportunity.action}
+              confidence={report.topOpportunity.confidence}
+              rationale={report.topOpportunity.rationale}
+              estimatedUpsideUsd={report.topOpportunity.estimatedUpsideUsd}
+            />
+          ) : (
+            <Card className="p-5 bg-gray-50 border border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-gray-400 text-lg">🎯</span>
+                <h4 className="text-sm font-semibold text-gray-600">Top Opportunity</h4>
+              </div>
+              <p className="text-sm text-gray-500">
+                No clear opportunities identified this week.
+              </p>
+            </Card>
+          )}
+
+          {/* Biggest Margin Leak */}
+          {report.biggestMarginLeak ? (
+            <MarginLeakCard
+              itemName={report.biggestMarginLeak.itemName}
+              category={report.biggestMarginLeak.category}
+              estimatedLossUsd={report.biggestMarginLeak.estimatedLossUsd}
+              diagnosis={report.biggestMarginLeak.diagnosis}
+              confidence={report.biggestMarginLeak.confidence}
+              fixes={report.biggestMarginLeak.fixes}
+            />
+          ) : (
+            <Card className="p-5 bg-gray-50 border border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-gray-400 text-lg">📉</span>
+                <h4 className="text-sm font-semibold text-gray-600">Margin Leaks</h4>
+              </div>
+              <p className="text-sm text-gray-500">
+                No significant margin leaks detected.
+              </p>
+            </Card>
+          )}
+        </div>
+      </section>
 
       {/* Watch List */}
       {report.watchList && report.watchList.length > 0 && (
