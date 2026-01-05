@@ -7,7 +7,14 @@
       "Bash(npm run db:generate:*)",
       "Bash(npx tsc:*)",
       "Bash(grep:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh repo create:*)",
+      "Bash(gh auth:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(sudo chown:*)",
+      "Bash(git push:*)"
     ]
   }
 }
