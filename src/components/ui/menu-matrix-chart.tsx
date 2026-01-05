@@ -43,10 +43,18 @@ export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
 
   // Calculate scales with dynamic zoom to fit data
   // NOTE: Y-axis uses unitMargin in DOLLARS (not %) to match scoring engine's quadrant logic
-  const { xScale, yScale, minQty, maxQty, minMargin, maxMargin } = useMemo(() => {
+  // Scoring engine uses 60th percentile thresholds for quadrant classification
+  const { xScale, yScale, minQty, maxQty, minMargin, maxMargin, qtyThreshold, marginThreshold } = useMemo(() => {
     const quantities = items.map((i) => i.qtySold);
     // Use unitMargin in dollars - this is what the scoring engine uses for quadrant classification
     const margins = items.map((i) => i.unitMargin ?? 0);
+
+    // Calculate 60th percentile thresholds (matches scoring engine's DEFAULT_SETTINGS)
+    const sortedQty = [...quantities].sort((a, b) => a - b);
+    const sortedMargin = [...margins].sort((a, b) => a - b);
+    const p60Index = Math.floor(0.6 * (sortedQty.length - 1));
+    const qtyP60 = sortedQty[p60Index] ?? 0;
+    const marginP60 = sortedMargin[p60Index] ?? 0;
 
     // Calculate actual data bounds
     const dataMinQ = Math.min(...quantities);
@@ -74,6 +82,8 @@ export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
       maxQty: maxQ,
       minMargin: minM,
       maxMargin: maxM,
+      qtyThreshold: qtyP60,
+      marginThreshold: marginP60,
     };
   }, [items, chartWidth, chartHeight]);
 
@@ -107,22 +117,24 @@ export function MenuMatrixChart({ items }: MenuMatrixChartProps) {
             rx={4}
           />
 
-          {/* Grid lines for reference */}
+          {/* Grid lines at 60th percentile thresholds (matching scoring engine) */}
           <line
-            x1={chartWidth / 2}
+            x1={xScale(qtyThreshold)}
             y1={0}
-            x2={chartWidth / 2}
+            x2={xScale(qtyThreshold)}
             y2={chartHeight}
-            stroke="#e5e7eb"
+            stroke="#d1d5db"
             strokeWidth={1}
+            strokeDasharray="4 2"
           />
           <line
             x1={0}
-            y1={chartHeight / 2}
+            y1={yScale(marginThreshold)}
             x2={chartWidth}
-            y2={chartHeight / 2}
-            stroke="#e5e7eb"
+            y2={yScale(marginThreshold)}
+            stroke="#d1d5db"
             strokeWidth={1}
+            strokeDasharray="4 2"
           />
 
           {/* Data points */}
