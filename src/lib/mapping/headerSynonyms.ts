@@ -14,7 +14,14 @@ export type CanonicalField =
   | "voids"
   | "location"
   | "item_id"
-  | "variation_name";
+  | "variation_name"
+  // MarginEdge cost fields
+  | "avg_cost_base"
+  | "modifier_cost"
+  | "total_cost"
+  | "items_sold_cost"
+  | "total_revenue_cost"
+  | "theoretical_cost_pct";
 
 export interface FieldDefinition {
   field: CanonicalField;
@@ -202,12 +209,86 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
       "size",
     ],
   },
+  // MarginEdge cost fields
+  {
+    field: "avg_cost_base",
+    required: false,
+    synonyms: [
+      "average cost",
+      "avg cost",
+      "unit cost",
+      "recipe cost",
+      "food cost",
+      "base cost",
+      "cost per unit",
+      "ingredient cost",
+    ],
+  },
+  {
+    field: "modifier_cost",
+    required: false,
+    synonyms: [
+      "modifier cost",
+      "modifiers cost",
+      "mod cost",
+      "add on cost",
+      "addon cost",
+      "extra cost",
+    ],
+  },
+  {
+    field: "total_cost",
+    required: false,
+    synonyms: [
+      "total cost",
+      "cost total",
+      "all in cost",
+      "full cost",
+      "combined cost",
+    ],
+  },
+  {
+    field: "items_sold_cost",
+    required: false,
+    synonyms: [
+      "items sold",
+      "qty sold",
+      "quantity sold",
+      "units sold",
+      "sold count",
+      "pmix qty",
+    ],
+  },
+  {
+    field: "total_revenue_cost",
+    required: false,
+    synonyms: [
+      "total revenue",
+      "revenue",
+      "sales",
+      "total sales",
+      "pmix revenue",
+    ],
+  },
+  {
+    field: "theoretical_cost_pct",
+    required: false,
+    synonyms: [
+      "theoretical cost",
+      "theoretical",
+      "cost pct",
+      "cost percent",
+      "cost percentage",
+      "food cost pct",
+      "food cost percent",
+    ],
+  },
 ];
 
 /**
  * POS preset configurations that bias mapping suggestions
  */
-export type POSPreset = "toast" | "square" | "generic";
+export type POSPreset = "toast" | "square" | "generic" | "marginedge";
 
 export interface PresetConfig {
   name: string;
@@ -243,6 +324,19 @@ export const POS_PRESETS: Record<POSPreset, PresetConfig> = {
     name: "Generic",
     biasTerms: [],
     priorityFields: ["item_name", "category", "quantity_sold", "net_sales"],
+  },
+  marginedge: {
+    name: "MarginEdge",
+    biasTerms: [
+      "average cost",
+      "modifier cost",
+      "total cost",
+      "theoretical",
+      "recipe",
+      "items sold",
+      "pmix",
+    ],
+    priorityFields: ["item_name", "items_sold_cost", "avg_cost_base", "modifier_cost"],
   },
 };
 

@@ -19,6 +19,9 @@ export interface ItemInput {
   quantitySold: number;
   netSales: number;
   unitFoodCost: number;
+  unitCostBase?: number;        // Base cost before modifiers (for ME data)
+  unitCostModifiers?: number;   // Modifier cost component (for ME data)
+  costSource?: "MANUAL" | "MARGINEDGE" | "ESTIMATE";
   isAnchor?: boolean;
 }
 
@@ -51,6 +54,9 @@ export interface ItemMetrics {
   quantitySold: number;
   netSales: number;
   unitFoodCost: number;
+  unitCostBase?: number;        // Base cost before modifiers (for ME data)
+  unitCostModifiers?: number;   // Modifier cost component (for ME data)
+  costSource: "MANUAL" | "MARGINEDGE" | "ESTIMATE";
   isAnchor: boolean;
 
   // Computed metrics
@@ -346,6 +352,7 @@ export function scoreItems(
       totalMargin,
       foodCostPct,
       isAnchor: item.isAnchor || false,
+      costSource: item.costSource || "ESTIMATE",
     };
   });
 
@@ -454,6 +461,9 @@ export function scoreItems(
       quantitySold: item.quantitySold,
       netSales: item.netSales,
       unitFoodCost: item.unitFoodCost,
+      unitCostBase: item.unitCostBase,
+      unitCostModifiers: item.unitCostModifiers,
+      costSource: item.costSource,
       isAnchor: item.isAnchor,
       avgPrice: round(item.avgPrice),
       unitMargin: round(item.unitMargin),

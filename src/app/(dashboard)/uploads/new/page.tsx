@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, AlertTriangle } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import Papa from "papaparse";
 import {
   suggestMapping,
@@ -17,6 +17,16 @@ import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/ui/stepper";
 import { Input, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+
+type CostSource = "manual" | "marginedge";
+
+interface CostValidationResult {
+  coverage: number;
+  coverageBadge: "GOOD" | "MIXED" | "REVIEW";
+  staleness: "CURRENT" | "STALE";
+  mismatchCount: number;
+  sanityWarnings: string[];
+}
 
 interface ParsedFile {
   headers: string[];
@@ -49,6 +59,11 @@ export default function UploadPage() {
   // Cost file state
   const [costFile, setCostFile] = useState<ParsedFile | null>(null);
   const [costMapping, setCostMapping] = useState<ColumnMapping>({});
+  const [costSource, setCostSource] = useState<CostSource>("manual");
+  const [meWeekStart, setMeWeekStart] = useState("");
+  const [meWeekEnd, setMeWeekEnd] = useState("");
+  const [costValidation, setCostValidation] = useState<CostValidationResult | null>(null);
+  const [acknowledgeReview, setAcknowledgeReview] = useState(false);
 
   // Week dates
   const [weekStart, setWeekStart] = useState("");
@@ -105,12 +120,15 @@ export default function UploadPage() {
     if (!file) return;
 
     setError(null);
+    setCostValidation(null);
+    setAcknowledgeReview(false);
     try {
       const parsed = await parseCSV(file);
       setCostFile(parsed);
 
-      // Auto-suggest mappings for cost file
-      const result = suggestMapping(parsed.headers, "generic");
+      // Auto-suggest mappings using marginedge preset for ME source
+      const presetToUse = costSource === "marginedge" ? "marginedge" : "generic";
+      const result = suggestMapping(parsed.headers, presetToUse);
       const mapping: ColumnMapping = {};
       for (const header of parsed.headers) {
         mapping[header] = null;
@@ -119,6 +137,14 @@ export default function UploadPage() {
         mapping[suggestion.headerName] = field;
       }
       setCostMapping(mapping);
+
+      // For ME, default ME dates to POS dates if not set
+      if (costSource === "marginedge" && !meWeekStart && weekStart) {
+        setMeWeekStart(weekStart);
+      }
+      if (costSource === "marginedge" && !meWeekEnd && weekEnd) {
+        setMeWeekEnd(weekEnd);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to parse file");
     }
@@ -168,11 +194,20 @@ export default function UploadPage() {
       }
     }
 
-    // Check that we have a cost column mapped
-    const hasCost = Object.values(costMapping).some((f) => f === "net_sales");
-    if (!hasCost) {
-      setError("Please map a column for unit food cost");
-      return false;
+    if (costSource === "marginedge") {
+      // ME requires avg_cost_base
+      const hasCost = mappedFields.has("avg_cost_base");
+      if (!hasCost) {
+        setError("Please map a column for average cost (base cost)");
+        return false;
+      }
+    } else {
+      // Manual mode uses net_sales field for cost (legacy)
+      const hasCost = Object.values(costMapping).some((f) => f === "net_sales");
+      if (!hasCost) {
+        setError("Please map a column for unit food cost");
+        return false;
+      }
     }
 
     return true;
@@ -180,6 +215,12 @@ export default function UploadPage() {
 
   const handleSubmit = async () => {
     if (!validateCostMapping()) return;
+
+    // For ME, check if review acknowledged when needed
+    if (costValidation?.coverageBadge === "REVIEW" && !acknowledgeReview) {
+      setError("Please acknowledge the data quality warning to proceed");
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -197,20 +238,35 @@ export default function UploadPage() {
             ? {
                 rows: costFile.rows,
                 mapping: costMapping,
+                source: costSource,
+                meWeekStart: costSource === "marginedge" ? meWeekStart : undefined,
+                meWeekEnd: costSource === "marginedge" ? meWeekEnd : undefined,
               }
             : null,
           weekStart,
           weekEnd,
           preset,
+          acknowledgeReview,
         }),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Upload failed");
+        // Handle validation that requires acknowledgment
+        if (result.requiresAcknowledgment && result.validation) {
+          setCostValidation(result.validation);
+          setError("Cost data has quality issues that require acknowledgment");
+          return;
+        }
+        throw new Error(result.error || "Upload failed");
       }
 
-      const result = await response.json();
+      // Store validation result if returned
+      if (result.costValidation) {
+        setCostValidation(result.costValidation);
+      }
+
       setIsComplete(true);
       setTimeout(() => {
         router.push(`/reports/${result.reportId}`);
@@ -512,19 +568,92 @@ export default function UploadPage() {
           <CardHeader>
             <CardTitle>Step 2: Add Item Costs</CardTitle>
             <CardDescription>
-              Upload a cost CSV or skip to use existing costs (or 30% estimate)
+              Upload cost data from MarginEdge or a manual CSV
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Cost Source Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => {
+                  setCostSource("marginedge");
+                  setCostFile(null);
+                  setCostMapping({});
+                  setCostValidation(null);
+                }}
+                className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                  costSource === "marginedge"
+                    ? "border-gray-900 bg-gray-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <h4 className="font-medium text-gray-900">MarginEdge</h4>
+                <p className="text-xs text-gray-500 mt-1">
+                  Menu Analysis CSV with recipe costs
+                </p>
+              </button>
+              <button
+                onClick={() => {
+                  setCostSource("manual");
+                  setCostFile(null);
+                  setCostMapping({});
+                  setCostValidation(null);
+                }}
+                className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                  costSource === "manual"
+                    ? "border-gray-900 bg-gray-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <h4 className="font-medium text-gray-900">Manual CSV</h4>
+                <p className="text-xs text-gray-500 mt-1">
+                  Simple item name + cost file
+                </p>
+              </button>
+            </div>
+
+            {/* ME Date Range (only for MarginEdge) */}
+            {costSource === "marginedge" && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-800">MarginEdge Export</p>
+                    <p className="text-xs text-blue-700 mt-1">
+                      Export Menu Analysis from MarginEdge for the same date range as your POS data.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <Input
+                        label="ME Week Start"
+                        type="date"
+                        value={meWeekStart}
+                        onChange={(e) => setMeWeekStart(e.target.value)}
+                      />
+                      <Input
+                        label="ME Week End"
+                        type="date"
+                        value={meWeekEnd}
+                        onChange={(e) => setMeWeekEnd(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {!costFile ? (
               <>
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-gray-300 transition-colors">
                   <FileSpreadsheet className="mx-auto h-10 w-10 text-gray-400" />
                   <h3 className="mt-3 text-sm font-medium text-gray-900">
-                    Upload Item Costs CSV (Optional)
+                    {costSource === "marginedge"
+                      ? "Upload MarginEdge Menu Analysis CSV"
+                      : "Upload Item Costs CSV (Optional)"}
                   </h3>
                   <p className="mt-1 text-xs text-gray-500">
-                    CSV with item names and unit food costs
+                    {costSource === "marginedge"
+                      ? "Export Menu Analysis > Download CSV from MarginEdge"
+                      : "CSV with item names and unit food costs"}
                   </p>
                   <label className="mt-4 inline-block">
                     <Button variant="secondary" size="sm" icon={<FileSpreadsheet className="h-4 w-4" />}>
@@ -537,15 +666,17 @@ export default function UploadPage() {
                       className="hidden"
                     />
                   </label>
-                  <div className="mt-3">
-                    <a
-                      href="/templates/item_costs.csv"
-                      download
-                      className="text-xs text-gray-500 hover:text-gray-700"
-                    >
-                      Download template CSV
-                    </a>
-                  </div>
+                  {costSource === "manual" && (
+                    <div className="mt-3">
+                      <a
+                        href="/templates/item_costs.csv"
+                        download
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Download template CSV
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-lg">
@@ -606,7 +737,18 @@ export default function UploadPage() {
                             >
                               <option value="">Skip</option>
                               <option value="item_name">item name *</option>
-                              <option value="net_sales">unit food cost *</option>
+                              {costSource === "marginedge" ? (
+                                <>
+                                  <option value="avg_cost_base">average cost (base) *</option>
+                                  <option value="modifier_cost">modifier cost</option>
+                                  <option value="total_cost">total cost</option>
+                                  <option value="items_sold_cost">items sold</option>
+                                  <option value="total_revenue_cost">total revenue</option>
+                                  <option value="theoretical_cost_pct">theoretical cost %</option>
+                                </>
+                              ) : (
+                                <option value="net_sales">unit food cost *</option>
+                              )}
                               <option value="category">category</option>
                             </select>
                           </td>
@@ -618,6 +760,70 @@ export default function UploadPage() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Validation Results (for ME) */}
+                {costValidation && costSource === "marginedge" && (
+                  <div className={`p-4 rounded-lg border ${
+                    costValidation.coverageBadge === "GOOD"
+                      ? "bg-emerald-50 border-emerald-200"
+                      : costValidation.coverageBadge === "MIXED"
+                      ? "bg-amber-50 border-amber-200"
+                      : "bg-red-50 border-red-200"
+                  }`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <Badge
+                        variant={
+                          costValidation.coverageBadge === "GOOD"
+                            ? "success"
+                            : costValidation.coverageBadge === "MIXED"
+                            ? "warning"
+                            : "danger"
+                        }
+                      >
+                        {costValidation.coverageBadge}
+                      </Badge>
+                      <span className="text-sm font-medium">
+                        {(costValidation.coverage * 100).toFixed(0)}% cost coverage
+                      </span>
+                    </div>
+                    {costValidation.staleness === "STALE" && (
+                      <p className="text-xs text-amber-700 mb-2">
+                        ⚠️ ME date range doesn't match POS dates
+                      </p>
+                    )}
+                    {costValidation.mismatchCount > 0 && (
+                      <p className="text-xs text-amber-700 mb-2">
+                        ⚠️ {costValidation.mismatchCount} items have quantity mismatches
+                      </p>
+                    )}
+                    {costValidation.sanityWarnings.map((w, i) => (
+                      <p key={i} className="text-xs text-amber-700">
+                        {w}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Acknowledgment Checkbox (when REVIEW status) */}
+                {costValidation?.coverageBadge === "REVIEW" && (
+                  <label className="flex items-start gap-3 p-4 border border-red-200 bg-red-50 rounded-lg cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={acknowledgeReview}
+                      onChange={(e) => setAcknowledgeReview(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-red-800">
+                        Acknowledge Data Quality Issues
+                      </p>
+                      <p className="text-xs text-red-700 mt-1">
+                        I understand the cost data has quality issues and want to proceed anyway.
+                        Recommendations may be less accurate.
+                      </p>
+                    </div>
+                  </label>
+                )}
               </div>
             )}
 

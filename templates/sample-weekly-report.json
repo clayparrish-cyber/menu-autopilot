@@ -1,0 +1,500 @@
+{
+  "reportId": "sample-report-001",
+  "accountName": "Parcelle",
+  "locationName": "Parcelle - Northeast",
+  "weekStart": "2025-01-06",
+  "weekEnd": "2025-01-12",
+  "dataQuality": {
+    "badge": "GOOD",
+    "note": "Sufficient data volume for confident recommendations."
+  },
+  "currentWeekSummary": {
+    "revenue": 17720,
+    "grossMargin": 9002,
+    "itemsSold": 1330,
+    "marginPct": 50.8
+  },
+  "priorWeekSummary": {
+    "revenue": 16850,
+    "grossMargin": 8420,
+    "itemsSold": 1245,
+    "marginPct": 50.0
+  },
+  "focusLine": "This week's focus: Reprice 4 high-volume items to improve menu performance.",
+  "estimatedUpsideRange": "$180-$360/week",
+  "topActions": [
+    {
+      "itemName": "Chicken Wings (Buffalo)",
+      "category": "Appetizers",
+      "quadrant": "PLOWHORSE",
+      "action": "REPRICE",
+      "confidence": "HIGH",
+      "kpis": {
+        "qtySold": 142,
+        "netSales": 1988,
+        "avgPrice": 14.0,
+        "unitCost": 5.25,
+        "unitMargin": 8.75,
+        "totalMargin": 1242.5,
+        "foodCostPct": 0.375
+      },
+      "ranks": {
+        "popularityRank": 1,
+        "totalItems": 48,
+        "popularityPercentile": 98,
+        "marginPercentile": 42,
+        "profitPercentile": 95
+      },
+      "whyItMatters": [
+        "Popular item with below-average margin.",
+        "Food cost at 37.5% exceeds your 30% target.",
+        "A small price adjustment could recover ~$142/week."
+      ],
+      "recommendationPrimary": "Raise price from $14.00 to $15.00 (+$1.00).",
+      "recommendationAlternative": "If price increase isn't feasible, review portion size or ingredient costs.",
+      "guardrailsAndNotes": [
+        "Price increase capped at 7.1% to avoid customer pushback.",
+        "Anchor item - price changes may affect perceived value of other items."
+      ],
+      "suggestedChangeSummary": {
+        "type": "PRICE_INCREASE",
+        "priceDeltaAbs": 1.0,
+        "priceDeltaPct": 0.071,
+        "suggestedPrice": 15.0
+      },
+      "estimatedWeeklyUpsideUsd": 142
+    },
+    {
+      "itemName": "Craft Burger",
+      "category": "Entrees",
+      "quadrant": "STAR",
+      "action": "PROMOTE",
+      "confidence": "HIGH",
+      "kpis": {
+        "qtySold": 98,
+        "netSales": 1666,
+        "avgPrice": 17.0,
+        "unitCost": 4.85,
+        "unitMargin": 12.15,
+        "totalMargin": 1190.7,
+        "foodCostPct": 0.285
+      },
+      "ranks": {
+        "popularityRank": 3,
+        "totalItems": 48,
+        "popularityPercentile": 94,
+        "marginPercentile": 88,
+        "profitPercentile": 96
+      },
+      "whyItMatters": [
+        "High popularity and high margin - a star performer.",
+        "Unit margin of $12.15 is in the top tier for your menu.",
+        "Contributing $1,190 in weekly margin."
+      ],
+      "recommendationPrimary": "Feature this item more prominently on your menu to maximize its impact.",
+      "guardrailsAndNotes": [],
+      "suggestedChangeSummary": {
+        "type": "PROMOTE"
+      }
+    },
+    {
+      "itemName": "Pan-Seared Salmon",
+      "category": "Entrees",
+      "quadrant": "PUZZLE",
+      "action": "REPOSITION",
+      "confidence": "MEDIUM",
+      "kpis": {
+        "qtySold": 18,
+        "netSales": 468,
+        "avgPrice": 26.0,
+        "unitCost": 8.5,
+        "unitMargin": 17.5,
+        "totalMargin": 315,
+        "foodCostPct": 0.327
+      },
+      "ranks": {
+        "popularityRank": 22,
+        "totalItems": 48,
+        "popularityPercentile": 55,
+        "marginPercentile": 92,
+        "profitPercentile": 68
+      },
+      "whyItMatters": [
+        "Good margin but underperforming on sales volume.",
+        "Unit margin of $17.50 suggests untapped profit potential.",
+        "May benefit from better menu placement or server push."
+      ],
+      "recommendationPrimary": "Move to a higher-visibility menu position or add server talking points.",
+      "recommendationAlternative": "If repositioning doesn't work after 2 weeks, consider a limited-time promotion.",
+      "guardrailsAndNotes": [
+        "Moderate confidence - consider re-evaluating after next week's data."
+      ],
+      "suggestedChangeSummary": {
+        "type": "REPOSITION"
+      },
+      "estimatedWeeklyUpsideUsd": 315
+    },
+    {
+      "itemName": "Fish Tacos",
+      "category": "Entrees",
+      "quadrant": "PLOWHORSE",
+      "action": "REPRICE",
+      "confidence": "HIGH",
+      "kpis": {
+        "qtySold": 76,
+        "netSales": 1140,
+        "avgPrice": 15.0,
+        "unitCost": 5.1,
+        "unitMargin": 9.9,
+        "totalMargin": 752.4,
+        "foodCostPct": 0.34
+      },
+      "ranks": {
+        "popularityRank": 5,
+        "totalItems": 48,
+        "popularityPercentile": 90,
+        "marginPercentile": 52,
+        "profitPercentile": 82
+      },
+      "whyItMatters": [
+        "Popular item with below-average margin.",
+        "Food cost at 34.0% exceeds your 30% target.",
+        "A small price adjustment could recover ~$76/week."
+      ],
+      "recommendationPrimary": "Raise price from $15.00 to $16.00 (+$1.00).",
+      "recommendationAlternative": "If price increase isn't feasible, review portion size or ingredient costs.",
+      "guardrailsAndNotes": [
+        "Price increase capped at 6.7% to avoid customer pushback."
+      ],
+      "suggestedChangeSummary": {
+        "type": "PRICE_INCREASE",
+        "priceDeltaAbs": 1.0,
+        "priceDeltaPct": 0.067,
+        "suggestedPrice": 16.0
+      },
+      "estimatedWeeklyUpsideUsd": 76
+    },
+    {
+      "itemName": "Loaded Nachos",
+      "category": "Appetizers",
+      "quadrant": "PLOWHORSE",
+      "action": "REWORK_COST",
+      "confidence": "HIGH",
+      "kpis": {
+        "qtySold": 64,
+        "netSales": 832,
+        "avgPrice": 13.0,
+        "unitCost": 4.95,
+        "unitMargin": 8.05,
+        "totalMargin": 515.2,
+        "foodCostPct": 0.381
+      },
+      "ranks": {
+        "popularityRank": 7,
+        "totalItems": 48,
+        "popularityPercentile": 86,
+        "marginPercentile": 38,
+        "profitPercentile": 72
+      },
+      "whyItMatters": [
+        "Popular item with below-average margin.",
+        "Food cost at 38.1% exceeds your 30% target.",
+        "Portion or ingredient review could improve profitability."
+      ],
+      "recommendationPrimary": "Review portion size or ingredient costs to improve margin without price change.",
+      "recommendationAlternative": "If cost reduction isn't possible, consider a small price increase.",
+      "guardrailsAndNotes": [],
+      "suggestedChangeSummary": {
+        "type": "COST_REDUCTION_TARGET",
+        "notes": "Review portion size or ingredient sourcing."
+      }
+    }
+  ],
+  "biggestMarginLeak": {
+    "itemName": "Chicken Wings (Buffalo)",
+    "category": "Appetizers",
+    "estimatedLossUsd": 213,
+    "diagnosis": "Food cost of 37.5% exceeds target of 30%, eroding margin on a high-volume item.",
+    "fixes": [
+      {
+        "label": "PRICE",
+        "detail": "Raise price to $15.00 to recover margin."
+      },
+      {
+        "label": "COST_SPEC",
+        "detail": "Review portion size or substitute lower-cost ingredients."
+      }
+    ]
+  },
+  "easiestWin": {
+    "itemName": "Pan-Seared Salmon",
+    "category": "Entrees",
+    "action": "REPOSITION",
+    "confidence": "MEDIUM",
+    "rationale": "High margin of $17.50/unit but low sales - better visibility could unlock profit.",
+    "estimatedUpsideUsd": 315
+  },
+  "watchList": [
+    {
+      "itemName": "Truffle Fries",
+      "category": "Sides",
+      "reason": "Only 8 sold - need more data before acting on reprice recommendation."
+    },
+    {
+      "itemName": "Lobster Mac & Cheese",
+      "category": "Entrees",
+      "reason": "Only 6 sold - need more data before acting on remove recommendation."
+    },
+    {
+      "itemName": "Seasonal Soup",
+      "category": "Appetizers",
+      "reason": "Only 12 sold - need more data before acting on reposition recommendation."
+    }
+  ],
+  "links": {
+    "reportUrl": "http://localhost:3000/reports/sample-report-001",
+    "recommendationsCsvUrl": "http://localhost:3000/api/reports/sample-report-001/csv",
+    "costEditorUrl": "http://localhost:3000/items"
+  },
+  "quadrantSummary": {
+    "stars": ["Craft Burger", "Classic Cheeseburger", "House Salad", "Margherita Pizza"],
+    "plowhorses": ["Chicken Wings (Buffalo)", "Fish Tacos", "Loaded Nachos", "Caesar Salad"],
+    "puzzles": ["Pan-Seared Salmon", "Ribeye Steak", "Grilled Lamb Chops"],
+    "dogs": ["Veggie Wrap", "Garden Burger", "Fruit Plate"]
+  },
+  "categorySummary": [
+    {
+      "category": "Entrees",
+      "netSales": 8420,
+      "qtySold": 312,
+      "avgUnitMargin": 11.25,
+      "totalMargin": 3510
+    },
+    {
+      "category": "Appetizers",
+      "netSales": 4280,
+      "qtySold": 298,
+      "avgUnitMargin": 7.85,
+      "totalMargin": 2339.3
+    },
+    {
+      "category": "Drinks",
+      "netSales": 2890,
+      "qtySold": 445,
+      "avgUnitMargin": 4.25,
+      "totalMargin": 1891.25
+    },
+    {
+      "category": "Sides",
+      "netSales": 1240,
+      "qtySold": 186,
+      "avgUnitMargin": 4.15,
+      "totalMargin": 771.9
+    },
+    {
+      "category": "Desserts",
+      "netSales": 890,
+      "qtySold": 89,
+      "avgUnitMargin": 5.5,
+      "totalMargin": 489.5
+    }
+  ],
+  "topRecommendationsTable": [
+    {
+      "rank": 1,
+      "itemName": "Chicken Wings (Buffalo)",
+      "category": "Appetizers",
+      "quadrant": "PLOWHORSE",
+      "action": "REPRICE",
+      "confidence": "HIGH",
+      "qtySold": 142,
+      "avgPrice": 14.0,
+      "unitCost": 5.25,
+      "unitMargin": 8.75,
+      "totalMargin": 1242.5,
+      "suggestedChangeText": "+$1.00"
+    },
+    {
+      "rank": 2,
+      "itemName": "Craft Burger",
+      "category": "Entrees",
+      "quadrant": "STAR",
+      "action": "PROMOTE",
+      "confidence": "HIGH",
+      "qtySold": 98,
+      "avgPrice": 17.0,
+      "unitCost": 4.85,
+      "unitMargin": 12.15,
+      "totalMargin": 1190.7,
+      "suggestedChangeText": "Promote"
+    },
+    {
+      "rank": 3,
+      "itemName": "Pan-Seared Salmon",
+      "category": "Entrees",
+      "quadrant": "PUZZLE",
+      "action": "REPOSITION",
+      "confidence": "MEDIUM",
+      "qtySold": 18,
+      "avgPrice": 26.0,
+      "unitCost": 8.5,
+      "unitMargin": 17.5,
+      "totalMargin": 315,
+      "suggestedChangeText": "Reposition"
+    },
+    {
+      "rank": 4,
+      "itemName": "Fish Tacos",
+      "category": "Entrees",
+      "quadrant": "PLOWHORSE",
+      "action": "REPRICE",
+      "confidence": "HIGH",
+      "qtySold": 76,
+      "avgPrice": 15.0,
+      "unitCost": 5.1,
+      "unitMargin": 9.9,
+      "totalMargin": 752.4,
+      "suggestedChangeText": "+$1.00"
+    },
+    {
+      "rank": 5,
+      "itemName": "Loaded Nachos",
+      "category": "Appetizers",
+      "quadrant": "PLOWHORSE",
+      "action": "REWORK_COST",
+      "confidence": "HIGH",
+      "qtySold": 64,
+      "avgPrice": 13.0,
+      "unitCost": 4.95,
+      "unitMargin": 8.05,
+      "totalMargin": 515.2,
+      "suggestedChangeText": "Rework cost"
+    },
+    {
+      "rank": 6,
+      "itemName": "Classic Cheeseburger",
+      "category": "Entrees",
+      "quadrant": "STAR",
+      "action": "KEEP_ANCHOR",
+      "confidence": "HIGH",
+      "qtySold": 112,
+      "avgPrice": 15.0,
+      "unitCost": 4.2,
+      "unitMargin": 10.8,
+      "totalMargin": 1209.6,
+      "suggestedChangeText": "Keep (Anchor)"
+    },
+    {
+      "rank": 7,
+      "itemName": "Caesar Salad",
+      "category": "Appetizers",
+      "quadrant": "PLOWHORSE",
+      "action": "REPRICE",
+      "confidence": "HIGH",
+      "qtySold": 58,
+      "avgPrice": 12.0,
+      "unitCost": 3.95,
+      "unitMargin": 8.05,
+      "totalMargin": 466.9,
+      "suggestedChangeText": "+$0.75"
+    },
+    {
+      "rank": 8,
+      "itemName": "House Salad",
+      "category": "Appetizers",
+      "quadrant": "STAR",
+      "action": "KEEP",
+      "confidence": "HIGH",
+      "qtySold": 82,
+      "avgPrice": 10.0,
+      "unitCost": 2.5,
+      "unitMargin": 7.5,
+      "totalMargin": 615,
+      "suggestedChangeText": "Keep"
+    },
+    {
+      "rank": 9,
+      "itemName": "Veggie Wrap",
+      "category": "Entrees",
+      "quadrant": "DOG",
+      "action": "REMOVE",
+      "confidence": "MEDIUM",
+      "qtySold": 12,
+      "avgPrice": 13.0,
+      "unitCost": 8.45,
+      "unitMargin": 4.55,
+      "totalMargin": 54.6,
+      "suggestedChangeText": "Remove"
+    },
+    {
+      "rank": 10,
+      "itemName": "Ribeye Steak",
+      "category": "Entrees",
+      "quadrant": "PUZZLE",
+      "action": "REPOSITION",
+      "confidence": "MEDIUM",
+      "qtySold": 14,
+      "avgPrice": 34.0,
+      "unitCost": 14.5,
+      "unitMargin": 19.5,
+      "totalMargin": 273,
+      "suggestedChangeText": "Reposition"
+    },
+    {
+      "rank": 11,
+      "itemName": "Garden Burger",
+      "category": "Entrees",
+      "quadrant": "DOG",
+      "action": "REMOVE",
+      "confidence": "LOW",
+      "qtySold": 8,
+      "avgPrice": 14.0,
+      "unitCost": 9.1,
+      "unitMargin": 4.9,
+      "totalMargin": 39.2,
+      "suggestedChangeText": "Remove"
+    },
+    {
+      "rank": 12,
+      "itemName": "Fruit Plate",
+      "category": "Sides",
+      "quadrant": "DOG",
+      "action": "REMOVE",
+      "confidence": "LOW",
+      "qtySold": 6,
+      "avgPrice": 8.0,
+      "unitCost": 5.2,
+      "unitMargin": 2.8,
+      "totalMargin": 16.8,
+      "suggestedChangeText": "Remove"
+    },
+    {
+      "rank": 13,
+      "itemName": "Grilled Lamb Chops",
+      "category": "Entrees",
+      "quadrant": "PUZZLE",
+      "action": "REPOSITION",
+      "confidence": "LOW",
+      "qtySold": 9,
+      "avgPrice": 38.0,
+      "unitCost": 16.5,
+      "unitMargin": 21.5,
+      "totalMargin": 193.5,
+      "suggestedChangeText": "Reposition"
+    },
+    {
+      "rank": 14,
+      "itemName": "Margherita Pizza",
+      "category": "Entrees",
+      "quadrant": "STAR",
+      "action": "KEEP",
+      "confidence": "HIGH",
+      "qtySold": 72,
+      "avgPrice": 16.0,
+      "unitCost": 4.8,
+      "unitMargin": 11.2,
+      "totalMargin": 806.4,
+      "suggestedChangeText": "Keep"
+    }
+  ]
+}

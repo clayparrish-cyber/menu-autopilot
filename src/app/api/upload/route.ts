@@ -4,7 +4,14 @@ import { getAuthContext, handleApiError, errorResponse } from "@/lib/api";
 import { z } from "zod";
 import { scoreItems, generateScoringResult, ItemInput } from "@/lib/scoring";
 import { CanonicalField } from "@/lib/mapping";
-import { Prisma } from "@prisma/client";
+import { Prisma, CostSource } from "@prisma/client";
+import {
+  processMEData,
+  validateCostData,
+  type ComputedCost,
+  type POSItem,
+  type MECostItem,
+} from "@/lib/cost";
 
 const uploadSchema = z.object({
   performanceData: z.object({
@@ -15,11 +22,15 @@ const uploadSchema = z.object({
     .object({
       rows: z.array(z.record(z.string(), z.string())),
       mapping: z.record(z.string(), z.string().nullable()),
+      source: z.enum(["manual", "marginedge"]).default("manual"),
+      meWeekStart: z.string().optional(),
+      meWeekEnd: z.string().optional(),
     })
     .nullable(),
   weekStart: z.string(),
   weekEnd: z.string(),
   preset: z.string().optional(),
+  acknowledgeReview: z.boolean().optional(), // User acknowledged REVIEW status
 });
 
 export async function POST(req: NextRequest) {
@@ -59,9 +70,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Build cost lookup from cost data or existing overrides
-    const costLookup = new Map<string, number>();
+    let costLookup = new Map<string, number>();
+    let computedCosts: ComputedCost[] = [];
+    let costSource: CostSource = "ESTIMATE";
+    let costValidation: ReturnType<typeof validateCostData> | null = null;
 
-    if (data.costData) {
+    if (data.costData && data.costData.source === "marginedge") {
+      // Process MarginEdge cost data
+      const meResult = processMEData(data.costData.rows, data.costData.mapping);
+      costLookup = meResult.costLookup;
+      computedCosts = meResult.computedCosts;
+      costSource = "MARGINEDGE";
+
+      // Build POS items for validation after processing performance data below
+    } else if (data.costData) {
+      // Legacy manual cost data processing
       const costFieldToHeader = new Map<CanonicalField, string>();
       for (const [header, field] of Object.entries(data.costData.mapping)) {
         if (field) {
@@ -81,6 +104,7 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+      costSource = "MANUAL";
     }
 
     // If no cost data provided, fetch existing costs from database
@@ -98,6 +122,8 @@ export async function POST(req: NextRequest) {
       for (const item of existingItems) {
         if (item.costOverrides.length > 0) {
           costLookup.set(item.name.toLowerCase(), item.costOverrides[0].unitFoodCost);
+          // Keep source as previous source if we're using existing data
+          costSource = item.costOverrides[0].source;
         }
       }
     }
@@ -145,6 +171,56 @@ export async function POST(req: NextRequest) {
         existing.sales += sales;
       } else {
         itemAggregates.set(key, { name, category, qty, sales });
+      }
+    }
+
+    // Run ME validation if MarginEdge data was provided
+    if (data.costData?.source === "marginedge" && computedCosts.length > 0) {
+      // Build POS items for validation
+      const posItems: POSItem[] = [];
+      for (const [, agg] of itemAggregates) {
+        if (agg.qty > 0) {
+          posItems.push({
+            itemName: agg.name,
+            quantitySold: agg.qty,
+            avgPrice: agg.qty > 0 ? agg.sales / agg.qty : 0,
+          });
+        }
+      }
+
+      // Build ME items for validation
+      const meItems: MECostItem[] = computedCosts.map((c) => ({
+        itemName: c.itemName,
+        itemsSold: c.meItemsSold,
+        avgCostBase: c.unitCostBase,
+        modifierCost: c.unitCostModifiers ? c.unitCostModifiers * c.meItemsSold : undefined,
+        totalCost: c.meTotalCost ?? undefined,
+        totalRevenue: c.meRevenue ?? undefined,
+        theoreticalCostPct: c.meTheoreticalPct ?? undefined,
+      }));
+
+      // Parse ME dates if provided
+      const meWeekStart = data.costData.meWeekStart ? new Date(data.costData.meWeekStart) : undefined;
+      const meWeekEnd = data.costData.meWeekEnd ? new Date(data.costData.meWeekEnd) : undefined;
+
+      costValidation = validateCostData(
+        posItems,
+        meItems,
+        costLookup,
+        meWeekStart,
+        meWeekEnd,
+        weekStart,
+        weekEnd
+      );
+
+      // Block if REVIEW status and not acknowledged
+      if (costValidation.requiresAcknowledgment && !data.acknowledgeReview) {
+        return NextResponse.json({
+          success: false,
+          requiresAcknowledgment: true,
+          validation: costValidation,
+          message: "Cost data has issues that require acknowledgment before proceeding",
+        }, { status: 400 });
       }
     }
 
@@ -198,23 +274,48 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Get cost
+      // Get cost and computed ME data if available
       let unitCost = costLookup.get(agg.name.toLowerCase()) || 0;
+      const meData = computedCosts.find(
+        (c) => c.itemName.toLowerCase() === agg.name.toLowerCase()
+      );
+      let itemCostSource = costSource;
 
-      // If cost data was provided, update the cost override
+      // If cost data was provided, create cost override with full ME data
       if (data.costData && unitCost > 0) {
-        await prisma.costOverride.create({
-          data: {
-            itemId: item.id,
-            unitFoodCost: unitCost,
-            effectiveDate: weekStart,
-          },
-        });
+        if (meData && costSource === "MARGINEDGE") {
+          await prisma.costOverride.create({
+            data: {
+              itemId: item.id,
+              unitFoodCost: meData.unitCostTotal,
+              unitCostBase: meData.unitCostBase,
+              unitCostModifiers: meData.unitCostModifiers,
+              source: "MARGINEDGE",
+              effectiveDate: weekStart,
+              meItemsSold: meData.meItemsSold,
+              meRevenue: meData.meRevenue,
+              meTotalCost: meData.meTotalCost,
+              meTheoreticalPct: meData.meTheoreticalPct,
+              ingestionWarnings: meData.ingestionWarnings,
+            },
+          });
+        } else {
+          await prisma.costOverride.create({
+            data: {
+              itemId: item.id,
+              unitFoodCost: unitCost,
+              source: "MANUAL",
+              effectiveDate: weekStart,
+            },
+          });
+          itemCostSource = "MANUAL";
+        }
       }
 
       // If no cost found, use a default (30% of avg price as estimate)
       if (unitCost === 0 && agg.qty > 0) {
         unitCost = (agg.sales / agg.qty) * 0.3;
+        itemCostSource = "ESTIMATE";
       }
 
       itemInputs.push({
@@ -224,17 +325,22 @@ export async function POST(req: NextRequest) {
         quantitySold: agg.qty,
         netSales: agg.sales,
         unitFoodCost: unitCost,
+        unitCostBase: meData?.unitCostBase,
+        unitCostModifiers: meData?.unitCostModifiers ?? undefined,
+        costSource: itemCostSource,
         isAnchor: item.isAnchor,
       });
     }
 
-    // Run scoring engine
+    // Run scoring engine using location settings
     const scoredItems = scoreItems(itemInputs, {
-      targetFoodCostPct: account.targetFoodCostPct,
-      minQtyThreshold: account.minQtyThreshold,
-      popularityThreshold: account.popularityThreshold,
-      marginThreshold: account.marginThreshold,
-      allowPremiumPricing: account.allowPremiumPricing,
+      targetFoodCostPct: location.targetFoodCostPct ?? account.targetFoodCostPct,
+      minQtyThreshold: location.confidenceQtyMedium ?? account.minQtyThreshold,
+      popularityThreshold: location.popularityThresholdPct ?? account.popularityThreshold,
+      marginThreshold: location.marginThresholdPct ?? account.marginThreshold,
+      allowPremiumPricing: location.allowPremiumCross85th ?? account.allowPremiumPricing,
+      maxPriceIncreasePct: location.priceIncreaseMaxPct ?? 0.08,
+      maxPriceIncreaseAmt: location.priceIncreaseMaxAbs ?? 2.0,
     });
 
     const result = generateScoringResult(scoredItems);
@@ -254,6 +360,9 @@ export async function POST(req: NextRequest) {
           netSales: metric.netSales,
           avgPrice: metric.avgPrice,
           unitFoodCost: metric.unitFoodCost,
+          unitCostBase: metric.unitCostBase,
+          unitCostModifiers: metric.unitCostModifiers,
+          costSource: metric.costSource,
           unitMargin: metric.unitMargin,
           totalMargin: metric.totalMargin,
           foodCostPct: metric.foodCostPct,
@@ -316,6 +425,13 @@ export async function POST(req: NextRequest) {
       reportId: report.id,
       weekId: week.id,
       itemCount: scoredItems.length,
+      costValidation: costValidation ? {
+        coverage: costValidation.coverage,
+        coverageBadge: costValidation.coverageBadge,
+        staleness: costValidation.staleness,
+        mismatchCount: costValidation.mismatchWarnings.length,
+        sanityWarnings: costValidation.sanityWarnings,
+      } : null,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

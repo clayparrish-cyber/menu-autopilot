@@ -49,6 +49,9 @@ export async function GET(
         quantitySold: metric.quantitySold,
         netSales: metric.netSales,
         unitFoodCost: metric.unitFoodCost,
+        unitCostBase: metric.unitCostBase ?? undefined,
+        unitCostModifiers: metric.unitCostModifiers ?? undefined,
+        costSource: metric.costSource as ItemMetrics["costSource"],
         isAnchor: metric.item.isAnchor,
         avgPrice: metric.avgPrice,
         unitMargin: metric.unitMargin,
@@ -96,6 +99,7 @@ export async function GET(
       scoringResult,
       baseUrl,
       targetFoodCostPct: ctx.account.targetFoodCostPct || 30,
+      channel: report.week.location.channel,
     });
 
     return NextResponse.json(payload);

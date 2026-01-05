@@ -12,6 +12,9 @@ import type { Quadrant, ActionLabel, Confidence, DataQualityBadge } from "../uti
 import { round, formatDateISO, groupByQuadrant, topN } from "../utils";
 import type { ItemMetrics, ScoringResult } from "../scoring/engine";
 
+import type { Channel } from "@prisma/client";
+import { CHANNEL_PRESETS } from "../channel";
+
 export interface ReportGeneratorInput {
   reportId: string;
   accountName: string;
@@ -22,6 +25,7 @@ export interface ReportGeneratorInput {
   baseUrl: string;
   targetFoodCostPct: number;
   mappingWarnings?: string[];
+  channel?: Channel;
 }
 
 /**
@@ -436,27 +440,33 @@ function assessDataQuality(
 /**
  * Generate focus line
  */
-function generateFocusLine(scoringResult: ScoringResult): string {
+function generateFocusLine(scoringResult: ScoringResult, channel?: Channel): string {
   const { summary } = scoringResult;
+  const preset = channel ? CHANNEL_PRESETS[channel] : null;
+
+  // Generate action-based focus
+  let action: string;
 
   if (summary.marginLeaks.length > 0) {
     const topLeak = summary.marginLeaks[0];
-    return `Address margin on "${topLeak.itemName}" — your biggest opportunity this week.`;
+    action = `Address margin on "${topLeak.itemName}"`;
+  } else if (summary.plowhorses > summary.stars) {
+    action = `Reprice ${summary.plowhorses} high-volume items`;
+  } else if (summary.puzzles > 0 && summary.easyWins.length > 0) {
+    action = `Reposition ${summary.puzzles} high-margin items`;
+  } else if (summary.dogs > summary.totalItems * 0.3) {
+    action = `Simplify menu by reviewing ${summary.dogs} underperformers`;
+  } else {
+    action = `Maintain ${summary.stars} star items`;
   }
 
-  if (summary.plowhorses > summary.stars) {
-    return `${summary.plowhorses} items are selling well but leaving margin on the table — focus on repricing.`;
+  // Use channel template if available
+  if (preset) {
+    return preset.focusLineTemplate.replace("{action}", action);
   }
 
-  if (summary.puzzles > 0 && summary.easyWins.length > 0) {
-    return `${summary.puzzles} high-margin items need better visibility — repositioning could unlock profit.`;
-  }
-
-  if (summary.dogs > summary.totalItems * 0.3) {
-    return `${summary.dogs} items are underperforming — consider menu simplification.`;
-  }
-
-  return `${summary.stars} star items driving results — maintain quality and consider featuring more.`;
+  // Default fallback
+  return `This week's focus: ${action} to improve menu performance.`;
 }
 
 /**
@@ -592,6 +602,9 @@ function buildTopRecommendationsTable(
       qtySold: item.quantitySold,
       avgPrice: item.avgPrice,
       unitCost: item.unitFoodCost,
+      unitCostBase: item.unitCostBase,
+      unitCostModifiers: item.unitCostModifiers,
+      costSource: item.costSource,
       unitMargin: item.unitMargin,
       totalMargin: item.totalMargin,
       suggestedChangeText,
@@ -615,6 +628,7 @@ export function generateWeeklyReportPayload(
     baseUrl,
     targetFoodCostPct,
     mappingWarnings,
+    channel,
   } = input;
 
   const items = scoringResult.items;
@@ -649,7 +663,7 @@ export function generateWeeklyReportPayload(
     weekEnd: formatDateISO(weekEnd),
 
     dataQuality: assessDataQuality(items, mappingWarnings),
-    focusLine: generateFocusLine(scoringResult),
+    focusLine: generateFocusLine(scoringResult, channel),
     estimatedUpsideRange: generateEstimatedUpsideRange(items),
 
     topActions: actionCards,

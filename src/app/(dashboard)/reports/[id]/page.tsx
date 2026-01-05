@@ -15,7 +15,7 @@ import {
   EasyWinCard,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DataQualityBadge, QuadrantBadge, ActionBadge, ConfidenceBadge } from "@/components/ui/badge";
+import { DataQualityBadge, QuadrantBadge, ActionBadge, ConfidenceBadge, CostSourceBadge, QUADRANT_DESCRIPTIONS } from "@/components/ui/badge";
 import { Accordion } from "@/components/ui/accordion";
 import { Table, TableHeader, TableBody, TableRow, TableCell } from "@/components/ui/table";
 
@@ -298,7 +298,7 @@ export default function ReportDetailPage() {
             <CardContent>
               <h3 className="text-sm font-semibold text-gray-900 mb-4">Menu Matrix</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-emerald-50 rounded-lg">
+                <div className="p-3 bg-emerald-50 rounded-lg cursor-help" title={QUADRANT_DESCRIPTIONS.STAR}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">⭐</span>
                     <span className="text-sm font-medium text-emerald-800">
@@ -310,7 +310,7 @@ export default function ReportDetailPage() {
                     {report.quadrantSummary.stars.length > 3 && "..."}
                   </p>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="p-3 bg-blue-50 rounded-lg cursor-help" title={QUADRANT_DESCRIPTIONS.PLOWHORSE}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">🐴</span>
                     <span className="text-sm font-medium text-blue-800">
@@ -322,7 +322,7 @@ export default function ReportDetailPage() {
                     {report.quadrantSummary.plowhorses.length > 3 && "..."}
                   </p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-lg">
+                <div className="p-3 bg-amber-50 rounded-lg cursor-help" title={QUADRANT_DESCRIPTIONS.PUZZLE}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">🧩</span>
                     <span className="text-sm font-medium text-amber-800">
@@ -334,7 +334,7 @@ export default function ReportDetailPage() {
                     {report.quadrantSummary.puzzles.length > 3 && "..."}
                   </p>
                 </div>
-                <div className="p-3 bg-red-50 rounded-lg">
+                <div className="p-3 bg-red-50 rounded-lg cursor-help" title={QUADRANT_DESCRIPTIONS.DOG}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">🐕</span>
                     <span className="text-sm font-medium text-red-800">
@@ -379,6 +379,7 @@ export default function ReportDetailPage() {
                   <TableCell header align="center">Action</TableCell>
                   <TableCell header align="right">Qty</TableCell>
                   <TableCell header align="right">Price</TableCell>
+                  <TableCell header align="right">Cost</TableCell>
                   <TableCell header align="right">Margin</TableCell>
                   <TableCell header align="center">Conf.</TableCell>
                 </TableRow>
@@ -403,6 +404,14 @@ export default function ReportDetailPage() {
                     </TableCell>
                     <TableCell align="right">{row.qtySold}</TableCell>
                     <TableCell align="right">${row.avgPrice.toFixed(2)}</TableCell>
+                    <TableCell align="right">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span>${row.unitCost?.toFixed(2) ?? "—"}</span>
+                        {row.costSource && (
+                          <CostSourceBadge source={row.costSource} />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell align="right">
                       {row.unitMargin !== undefined ? (
                         <span className="text-emerald-600">${row.unitMargin.toFixed(2)}</span>

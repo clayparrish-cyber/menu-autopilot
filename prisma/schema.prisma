@@ -101,10 +101,30 @@ enum SubscriptionTier {
   GROUP
 }
 
+enum Channel {
+  BAR_KITCHEN
+  FULL_SERVICE
+  FAST_CASUAL
+  CAFE
+  BREWERY
+  OTHER
+}
+
 model Location {
-  id          String    @id @default(cuid())
-  name        String
-  address     String?
+  id                    String    @id @default(cuid())
+  name                  String
+  address               String?
+  channel               Channel   @default(BAR_KITCHEN)
+
+  // Channel-derived settings (can be customized per location)
+  targetFoodCostPct     Float     @default(30)
+  popularityThresholdPct Float    @default(60)
+  marginThresholdPct    Float     @default(60)
+  confidenceQtyHigh     Int       @default(20)
+  confidenceQtyMedium   Int       @default(10)
+  priceIncreaseMaxPct   Float     @default(0.08)
+  priceIncreaseMaxAbs   Float     @default(2.00)
+  allowPremiumCross85th Boolean   @default(false)
 
   account     Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId   String
@@ -141,6 +161,7 @@ model Upload {
 enum UploadType {
   PERFORMANCE
   COSTS
+  MARGINEDGE_MENU_ANALYSIS
 }
 
 enum UploadStatus {
@@ -186,22 +207,38 @@ model Item {
   @@unique([locationId, name])
 }
 
+enum CostSource {
+  MANUAL
+  MARGINEDGE
+  ESTIMATE
+}
+
 model CostOverride {
-  id            String    @id @default(cuid())
-  unitFoodCost  Float
-  effectiveDate DateTime  @default(now())
+  id                String      @id @default(cuid())
+  unitFoodCost      Float       // Total unit cost (base + modifiers) - PRIMARY
+  unitCostBase      Float?      // Base recipe cost (avg_cost_base from ME)
+  unitCostModifiers Float?      // Modifier cost per unit (modifier_cost / items_sold)
+  source            CostSource  @default(MANUAL)
+  effectiveDate     DateTime    @default(now())
 
-  item          Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  itemId        String
+  item              Item        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId            String
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  // Full ME data for audit/debugging
+  meItemsSold       Int?        // items_sold from ME (for mismatch detection)
+  meRevenue         Float?      // total_revenue from ME
+  meTotalCost       Float?      // total_cost from ME (if available)
+  meTheoreticalPct  Float?      // theoretical_cost_pct from ME
+  ingestionWarnings String[]    @default([])
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   @@index([itemId, effectiveDate])
 }
 
 model ItemWeekMetric {
-  id                  String    @id @default(cuid())
+  id                  String      @id @default(cuid())
 
   // Raw data
   quantitySold        Int
@@ -210,6 +247,9 @@ model ItemWeekMetric {
   // Computed metrics
   avgPrice            Float
   unitFoodCost        Float
+  unitCostBase        Float?      // Base cost (before modifiers) if available
+  unitCostModifiers   Float?      // Modifier cost component if available
+  costSource          CostSource  @default(ESTIMATE)
   unitMargin          Float
   totalMargin         Float
   foodCostPct         Float

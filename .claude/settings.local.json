@@ -14,7 +14,14 @@
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(sudo chown:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(npm test:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npm run validate:sample-report:*)",
+      "Bash(pkill:*)",
+      "Bash(cat:*)"
     ]
   }
 }

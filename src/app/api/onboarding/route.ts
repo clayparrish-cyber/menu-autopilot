@@ -4,15 +4,33 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleApiError, errorResponse } from "@/lib/api";
 import { z } from "zod";
+import { Channel } from "@prisma/client";
+
+const channelEnum = z.enum([
+  "BAR_KITCHEN",
+  "FULL_SERVICE",
+  "FAST_CASUAL",
+  "CAFE",
+  "BREWERY",
+  "OTHER",
+]);
 
 const onboardingSchema = z.object({
+  // Business details
   accountName: z.string().min(1),
   locationName: z.string().min(1),
   locationAddress: z.string().optional(),
+  channel: channelEnum.default("BAR_KITCHEN"),
+
+  // Channel-derived settings
   targetFoodCostPct: z.number().min(1).max(100).default(30),
-  minQtyThreshold: z.number().min(1).default(10),
-  popularityThreshold: z.number().min(1).max(99).default(60),
-  marginThreshold: z.number().min(1).max(99).default(60),
+  popularityThresholdPct: z.number().min(1).max(99).default(60),
+  marginThresholdPct: z.number().min(1).max(99).default(60),
+  confidenceQtyHigh: z.number().min(1).default(20),
+  confidenceQtyMedium: z.number().min(1).default(10),
+  priceIncreaseMaxPct: z.number().min(0).max(1).default(0.08),
+  priceIncreaseMaxAbs: z.number().min(0).default(2.0),
+  allowPremiumCross85th: z.boolean().default(false),
 });
 
 export async function POST(req: NextRequest) {
@@ -37,25 +55,35 @@ export async function POST(req: NextRequest) {
 
     // Create account with location in a transaction
     const account = await prisma.$transaction(async (tx) => {
-      // Create the account
+      // Create the account (keep account-level settings for backwards compat)
       const newAccount = await tx.account.create({
         data: {
           name: data.accountName,
           ownerId: session.user.id,
           targetFoodCostPct: data.targetFoodCostPct,
-          minQtyThreshold: data.minQtyThreshold,
-          popularityThreshold: data.popularityThreshold,
-          marginThreshold: data.marginThreshold,
+          minQtyThreshold: data.confidenceQtyMedium,
+          popularityThreshold: data.popularityThresholdPct,
+          marginThreshold: data.marginThresholdPct,
+          allowPremiumPricing: data.allowPremiumCross85th,
           subscriptionTier: "NONE",
         },
       });
 
-      // Create the first location
+      // Create the first location with channel-specific settings
       await tx.location.create({
         data: {
           name: data.locationName,
           address: data.locationAddress || null,
           accountId: newAccount.id,
+          channel: data.channel as Channel,
+          targetFoodCostPct: data.targetFoodCostPct,
+          popularityThresholdPct: data.popularityThresholdPct,
+          marginThresholdPct: data.marginThresholdPct,
+          confidenceQtyHigh: data.confidenceQtyHigh,
+          confidenceQtyMedium: data.confidenceQtyMedium,
+          priceIncreaseMaxPct: data.priceIncreaseMaxPct,
+          priceIncreaseMaxAbs: data.priceIncreaseMaxAbs,
+          allowPremiumCross85th: data.allowPremiumCross85th,
         },
       });
 

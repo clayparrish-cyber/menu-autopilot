@@ -218,12 +218,22 @@ interface MarginLeakCardProps {
   fixes: Array<{ label: string; detail: string }>;
 }
 
+const FIX_BADGE_LABELS: Record<string, string> = {
+  PRICE: "Reprice",
+  COST_SPEC: "Rework recipe",
+  MENU_PLACEMENT: "Reposition",
+};
+
 export function MarginLeakCard({
   itemName,
   estimatedLossUsd,
   diagnosis,
   fixes,
 }: MarginLeakCardProps) {
+  // Get primary action for badge (first fix)
+  const primaryAction = fixes[0]?.label;
+  const badgeLabel = FIX_BADGE_LABELS[primaryAction] || "Review";
+
   return (
     <Card variant="danger" className="p-5">
       <div className="flex items-center gap-2 mb-3">
@@ -231,23 +241,29 @@ export function MarginLeakCard({
         <h4 className="text-sm font-semibold text-red-900">Biggest Margin Leak</h4>
       </div>
       <p className="text-base font-medium text-gray-900 mb-1">{itemName}</p>
-      <p className="text-sm text-red-700 mb-3">
-        Losing ~<strong>${estimatedLossUsd.toFixed(0)}/week</strong> in potential margin
-      </p>
-      <p className="text-sm text-gray-600 mb-3">{diagnosis}</p>
-      <div className="space-y-2">
-        {fixes.map((fix, i) => (
-          <div key={i} className="flex items-start gap-2 text-sm">
-            <span className="font-medium text-gray-700 w-20 flex-shrink-0">{fix.label}:</span>
-            <span className="text-gray-600">{fix.detail}</span>
-          </div>
-        ))}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+          {badgeLabel}
+        </span>
+        <span className="text-sm text-red-600">
+          −${estimatedLossUsd.toFixed(0)}/week
+        </span>
       </div>
+      <p className="text-sm text-gray-600 mb-3">{diagnosis}</p>
+      <p className="text-xs font-medium text-gray-700 mb-2">How to fix</p>
+      <ul className="space-y-1.5">
+        {fixes.map((fix, i) => (
+          <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+            <span className="text-red-400 mt-0.5">•</span>
+            <span>{fix.detail}</span>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
 
-// Easy win card
+// Easy win card - uses amber/gold to indicate opportunity (not "all good")
 interface EasyWinCardProps {
   itemName: string;
   category?: string;
@@ -265,15 +281,15 @@ export function EasyWinCard({
   estimatedUpsideUsd,
 }: EasyWinCardProps) {
   return (
-    <Card variant="success" className="p-5">
+    <Card className="p-5 bg-amber-50 border border-amber-200">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-emerald-600 text-lg">🎯</span>
-        <h4 className="text-sm font-semibold text-emerald-900">Easiest Win</h4>
+        <span className="text-amber-600 text-lg">🎯</span>
+        <h4 className="text-sm font-semibold text-amber-900">Easiest Win</h4>
       </div>
       <p className="text-base font-medium text-gray-900 mb-1">{itemName}</p>
       <div className="flex items-center gap-2 mb-3">
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-          {action.replace("_", " ")}
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 capitalize">
+          {action.replace("_", " ").toLowerCase()}
         </span>
         <span className="text-xs text-gray-500">
           {confidence.toLowerCase()} confidence
@@ -281,7 +297,7 @@ export function EasyWinCard({
       </div>
       <p className="text-sm text-gray-600">{rationale}</p>
       {estimatedUpsideUsd !== undefined && estimatedUpsideUsd > 0 && (
-        <p className="text-sm font-medium text-emerald-700 mt-2">
+        <p className="text-sm font-medium text-amber-700 mt-2">
           Potential: +${estimatedUpsideUsd.toFixed(0)}/week
         </p>
       )}

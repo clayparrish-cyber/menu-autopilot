@@ -14,6 +14,13 @@ const ActionLabel = z.enum([
 const Quadrant = z.enum(["STAR", "PLOWHORSE", "PUZZLE", "DOG"]);
 const DataQualityBadge = z.enum(["GOOD", "MIXED", "REVIEW"]);
 
+const WeekSummaryTotals = z.object({
+  revenue: z.number(),
+  grossMargin: z.number(),
+  itemsSold: z.number().nonnegative(),
+  marginPct: z.number().min(0).max(100).optional(),
+});
+
 export const WeeklyReportPayloadSchema = z.object({
   reportId: z.string().min(1),
   accountName: z.string().min(1),
@@ -25,6 +32,10 @@ export const WeeklyReportPayloadSchema = z.object({
     badge: DataQualityBadge,
     note: z.string().min(1),
   }),
+
+  // Week-over-week comparison (optional)
+  currentWeekSummary: WeekSummaryTotals.optional(),
+  priorWeekSummary: WeekSummaryTotals.optional(),
 
   focusLine: z.string().min(1),
   estimatedUpsideRange: z.string().optional(),

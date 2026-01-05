@@ -107,6 +107,14 @@ export interface DataQuality {
   note: string; // one sentence
 }
 
+// Week-over-week comparison data
+export interface WeekSummaryTotals {
+  revenue: number;
+  grossMargin: number;
+  itemsSold: number;
+  marginPct?: number; // computed: grossMargin / revenue
+}
+
 export interface WeeklyReportPayload {
   reportId: string;
   accountName: string;
@@ -115,6 +123,10 @@ export interface WeeklyReportPayload {
   weekEnd: string; // ISO yyyy-mm-dd
 
   dataQuality: DataQuality;
+
+  // Week-over-week comparison (optional)
+  currentWeekSummary?: WeekSummaryTotals;
+  priorWeekSummary?: WeekSummaryTotals;
 
   // 1–2 lines
   focusLine: string;
@@ -158,6 +170,9 @@ export interface WeeklyReportPayload {
     qtySold: number;
     avgPrice: number;
     unitCost?: number;
+    unitCostBase?: number;      // Base cost before modifiers (for ME data)
+    unitCostModifiers?: number; // Modifier cost component (for ME data)
+    costSource?: "MANUAL" | "MARGINEDGE" | "ESTIMATE";
     unitMargin?: number;
     totalMargin?: number;
     suggestedChangeText?: string; // e.g. "+$1", "Promote", "Remove"

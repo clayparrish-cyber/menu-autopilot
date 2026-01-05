@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { CHANNEL_OPTIONS, getLocationSettingsFromChannel } from "@/lib/channel";
+import type { Channel } from "@prisma/client";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -12,20 +14,21 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
+    channel: "BAR_KITCHEN" as Channel,
     accountName: "",
     locationName: "",
     locationAddress: "",
-    targetFoodCostPct: 30,
-    minQtyThreshold: 10,
-    popularityThreshold: 60,
-    marginThreshold: 60,
   });
+
+  // Derived settings from channel preset
+  const channelSettings = getLocationSettingsFromChannel(formData.channel);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (step === 1) {
-      setStep(2);
+    // Steps 1 and 2 just advance
+    if (step < 3) {
+      setStep(step + 1);
       return;
     }
 
@@ -36,7 +39,10 @@ export default function OnboardingPage() {
       const res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          ...channelSettings,
+        }),
       });
 
       if (!res.ok) {
@@ -74,9 +80,13 @@ export default function OnboardingPage() {
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}>
             1
           </div>
-          <div className={`w-16 h-1 ${step >= 2 ? "bg-blue-600" : "bg-gray-200"}`} />
+          <div className={`w-12 h-1 ${step >= 2 ? "bg-blue-600" : "bg-gray-200"}`} />
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}>
             2
+          </div>
+          <div className={`w-12 h-1 ${step >= 3 ? "bg-blue-600" : "bg-gray-200"}`} />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}>
+            3
           </div>
         </div>
 
@@ -88,7 +98,42 @@ export default function OnboardingPage() {
           )}
 
           <form onSubmit={handleSubmit}>
-            {step === 1 ? (
+            {/* Step 1: Channel Selection */}
+            {step === 1 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-medium text-gray-900">What best describes this location?</h2>
+                <p className="text-sm text-gray-500">This helps us optimize settings for your type of business.</p>
+
+                <div className="space-y-3">
+                  {CHANNEL_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                        formData.channel === option.value
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="channel"
+                        value={option.value}
+                        checked={formData.channel === option.value}
+                        onChange={(e) => setFormData({ ...formData, channel: e.target.value as Channel })}
+                        className="mt-0.5 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <div className="ml-3">
+                        <span className="block text-sm font-medium text-gray-900">{option.label}</span>
+                        <span className="block text-xs text-gray-500">{option.description}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Business Details */}
+            {step === 2 && (
               <div className="space-y-4">
                 <h2 className="text-lg font-medium text-gray-900">Business Details</h2>
 
@@ -136,79 +181,53 @@ export default function OnboardingPage() {
                   />
                 </div>
               </div>
-            ) : (
+            )}
+
+            {/* Step 3: Review Settings */}
+            {step === 3 && (
               <div className="space-y-4">
-                <h2 className="text-lg font-medium text-gray-900">Target Settings</h2>
-                <p className="text-sm text-gray-500">These can be adjusted later in settings.</p>
+                <h2 className="text-lg font-medium text-gray-900">Review Settings</h2>
+                <p className="text-sm text-gray-500">
+                  Based on your {CHANNEL_OPTIONS.find(o => o.value === formData.channel)?.label} profile,
+                  we&apos;ve optimized these settings. You can adjust them later.
+                </p>
 
-                <div>
-                  <label htmlFor="targetFoodCostPct" className="block text-sm font-medium text-gray-700">
-                    Target Food Cost % (default: 30%)
-                  </label>
-                  <input
-                    id="targetFoodCostPct"
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={formData.targetFoodCostPct}
-                    onChange={(e) => setFormData({ ...formData, targetFoodCostPct: parseInt(e.target.value) || 30 })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Target Food Cost</span>
+                    <span className="font-medium text-gray-900">{channelSettings.targetFoodCostPct}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">High Confidence Qty</span>
+                    <span className="font-medium text-gray-900">{channelSettings.confidenceQtyHigh}+ per week</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Max Price Increase</span>
+                    <span className="font-medium text-gray-900">
+                      {(channelSettings.priceIncreaseMaxPct * 100).toFixed(0)}% or ${channelSettings.priceIncreaseMaxAbs.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Quadrant Thresholds</span>
+                    <span className="font-medium text-gray-900">
+                      {channelSettings.popularityThresholdPct}th percentile
+                    </span>
+                  </div>
                 </div>
 
-                <div>
-                  <label htmlFor="minQtyThreshold" className="block text-sm font-medium text-gray-700">
-                    Minimum Quantity for High Confidence (default: 10)
-                  </label>
-                  <input
-                    id="minQtyThreshold"
-                    type="number"
-                    min="1"
-                    value={formData.minQtyThreshold}
-                    onChange={(e) => setFormData({ ...formData, minQtyThreshold: parseInt(e.target.value) || 10 })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="popularityThreshold" className="block text-sm font-medium text-gray-700">
-                      Popularity Threshold Percentile
-                    </label>
-                    <input
-                      id="popularityThreshold"
-                      type="number"
-                      min="1"
-                      max="99"
-                      value={formData.popularityThreshold}
-                      onChange={(e) => setFormData({ ...formData, popularityThreshold: parseInt(e.target.value) || 60 })}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="marginThreshold" className="block text-sm font-medium text-gray-700">
-                      Margin Threshold Percentile
-                    </label>
-                    <input
-                      id="marginThreshold"
-                      type="number"
-                      min="1"
-                      max="99"
-                      value={formData.marginThreshold}
-                      onChange={(e) => setFormData({ ...formData, marginThreshold: parseInt(e.target.value) || 60 })}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                  </div>
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Ready to go!</strong> After setup, you&apos;ll upload your first weekly sales data.
+                  </p>
                 </div>
               </div>
             )}
 
             <div className="mt-6 flex justify-between">
-              {step === 2 && (
+              {step > 1 && (
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(step - 1)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500"
                 >
                   &larr; Back
@@ -216,10 +235,10 @@ export default function OnboardingPage() {
               )}
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || (step === 2 && (!formData.accountName || !formData.locationName))}
                 className="ml-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                {isLoading ? "Saving..." : step === 1 ? "Next" : "Complete Setup"}
+                {isLoading ? "Saving..." : step < 3 ? "Next" : "Complete Setup"}
               </button>
             </div>
           </form>
