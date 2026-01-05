@@ -116,7 +116,7 @@ export default function ReportsPage() {
                     {report.summary.totalItems} items
                   </p>
                   <p className="text-xs text-gray-500">
-                    ${report.summary.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })} revenue
+                    ${(report.summary.totalRevenue || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} revenue
                   </p>
                 </div>
 
@@ -124,9 +124,9 @@ export default function ReportsPage() {
                   {/* Margin % */}
                   <div className="text-center">
                     {(() => {
-                      const marginPct = report.summary.totalRevenue > 0
-                        ? (report.summary.totalMargin / report.summary.totalRevenue) * 100
-                        : 0;
+                      const totalRevenue = report.summary.totalRevenue || 0;
+                      const totalMargin = report.summary.totalMargin || 0;
+                      const marginPct = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
                       const color = marginPct >= 70 ? 'text-emerald-600' : marginPct >= 60 ? 'text-amber-600' : 'text-red-600';
                       return (
                         <>
@@ -139,7 +139,7 @@ export default function ReportsPage() {
                   {/* Items needing action */}
                   <div className="text-center">
                     {(() => {
-                      const needsAction = report.summary.plowhorses + report.summary.puzzles + report.summary.dogs;
+                      const needsAction = (report.summary.plowhorses || 0) + (report.summary.puzzles || 0) + (report.summary.dogs || 0);
                       const color = needsAction > 10 ? 'text-red-600' : needsAction > 5 ? 'text-amber-600' : 'text-gray-900';
                       return (
                         <>
