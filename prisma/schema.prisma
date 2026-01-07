@@ -394,8 +394,12 @@ model TipOrganization {
   id        String   @id @default(cuid())
   name      String
 
-  locations TipLocation[]
-  users     TipUser[]
+  // Feature settings (configured during setup)
+  usesCashTips Boolean @default(true)
+
+  locations  TipLocation[]
+  users      TipUser[]
+  payPeriods PayPeriod[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -411,11 +415,121 @@ model TipLocation {
   organization   TipOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String
 
-  staff     TipStaff[]
-  shifts    Shift[]
+  staff          TipStaff[]
+  staffLocations StaffLocation[] @relation("StaffLocations")
+  coverPageScans CoverPageScan[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Two-week pay period for tip aggregation
+model PayPeriod {
+  id        String          @id @default(cuid())
+  startDate DateTime        @db.Date
+  endDate   DateTime        @db.Date
+  status    PayPeriodStatus @default(OPEN)
+
+  // Finalization
+  finalizedAt DateTime?
+  finalizedBy String?
+
+  // Export tracking
+  exportedAt  DateTime?
+  exportedBy  String?
+  exportNotes String?
+
+  organization   TipOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+
+  // All cover page scans in this period
+  coverPageScans CoverPageScan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, startDate, endDate])
+  @@index([organizationId, status])
+}
+
+enum PayPeriodStatus {
+  OPEN       // Accepting new scans
+  REVIEW     // Manager reviewing before finalize
+  FINALIZED  // Locked, ready for export
+  EXPORTED   // Uploaded to Toast
+}
+
+// Scanned cover page from a server's receipt packet
+model CoverPageScan {
+  id        String        @id @default(cuid())
+  imageUrl  String        // S3/storage URL for the uploaded image
+  status    ScanStatus    @default(PENDING)
+
+  // Extracted data from OCR
+  serverName     String?   // Extracted server name
+  shiftDate      DateTime? @db.Date // Extracted date
+  grossTips      Float?    // Total tips before deductions
+  cashOwed       Float?    // Cash adjustment (if any)
+  netBeforeTipout Float?   // After cash adjustment, before tip-outs
+  netTips        Float?    // Final net tips (what server keeps)
+
+  // Raw OCR output for debugging/audit
+  ocrRawText     String?   // Full extracted text
+  ocrConfidence  Float?    // OCR confidence score (0-1)
+
+  // Manual corrections (if manager edited)
+  wasManuallyEdited Boolean @default(false)
+  editNotes         String?
+
+  // Links
+  location   TipLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId String
+
+  payPeriod   PayPeriod? @relation(fields: [payPeriodId], references: [id])
+  payPeriodId String?
+
+  // Linked staff member (after name matching)
+  staff   TipStaff? @relation(fields: [staffId], references: [id])
+  staffId String?
+
+  // Tip-outs extracted from this cover page
+  tipOuts TipOut[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([locationId, shiftDate])
+  @@index([payPeriodId])
+  @@index([staffId])
+}
+
+enum ScanStatus {
+  PENDING      // Uploaded, awaiting OCR
+  PROCESSING   // OCR in progress
+  REVIEW       // OCR complete, needs manager review
+  CONFIRMED    // Manager confirmed data is correct
+  ERROR        // OCR failed or data couldn't be extracted
+}
+
+// Tip-out from a server to a support staff member
+model TipOut {
+  id            String   @id @default(cuid())
+  recipientName String   // Name as written on cover page
+  amount        Float    // Dollar amount
+
+  // Source cover page
+  coverPageScan   CoverPageScan @relation(fields: [coverPageScanId], references: [id], onDelete: Cascade)
+  coverPageScanId String
+
+  // Linked recipient (after name matching)
+  recipientStaff   TipStaff? @relation(fields: [recipientStaffId], references: [id])
+  recipientStaffId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coverPageScanId])
+  @@index([recipientStaffId])
 }
 
 // AirTip user authentication (separate from Menu Autopilot)
@@ -424,7 +538,7 @@ model TipUser {
   email         String   @unique
   passwordHash  String
   name          String?
-  role          TipUserRole @default(SERVER)
+  role          TipUserRole @default(MANAGER)
 
   organization   TipOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String
@@ -458,8 +572,7 @@ model TipSession {
 
 enum TipUserRole {
   ADMIN       // Can manage org, locations, staff, view all
-  MANAGER     // Can manage shifts, reconcile, close shifts
-  SERVER      // Can only view/submit own allocations
+  MANAGER     // Can scan receipts, review, finalize periods
 }
 
 // Staff member at a location (may or may not have a TipUser login)
@@ -469,24 +582,41 @@ model TipStaff {
   roleType  StaffRoleType @default(SERVER)
   isActive  Boolean  @default(true)
 
+  // Primary/default location (for backwards compatibility)
   location   TipLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
   locationId String
+
+  // All locations this staff member can work at
+  locations  StaffLocation[]
 
   // Optional link to user account
   user      TipUser? @relation("UserStaffProfile", fields: [userId], references: [id])
   userId    String?  @unique
 
-  // Shift entries where this staff was working
-  shiftEntries   ShiftEntry[]
+  // Cover page scans where this staff was the server
+  coverPageScans CoverPageScan[]
 
-  // Allocations received from other servers
-  allocationsReceived TipAllocation[] @relation("AllocationRecipient")
+  // Tip-outs received from other servers
+  tipOutsReceived TipOut[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([locationId, name])
   @@index([locationId, isActive])
+}
+
+// Join table for staff working at multiple locations
+model StaffLocation {
+  id         String      @id @default(cuid())
+  staff      TipStaff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId    String
+  location   TipLocation @relation("StaffLocations", fields: [locationId], references: [id], onDelete: Cascade)
+  locationId String
+  createdAt  DateTime    @default(now())
+
+  @@unique([staffId, locationId])
+  @@index([locationId])
 }
 
 enum StaffRoleType {
@@ -502,136 +632,11 @@ enum StaffRoleType {
   OTHER
 }
 
-// A shift record (e.g., Lunch on Jan 5, 2026)
-model Shift {
-  id          String      @id @default(cuid())
-  shiftDate   DateTime    @db.Date
-  shiftType   ShiftType   @default(DINNER)
-  status      ShiftStatus @default(OPEN)
-
-  // Totals from Toast (for reconciliation)
-  toastTotalCCTips   Float?   // Total CC tips from Toast report
-  toastTotalSales    Float?   // Total sales from Toast report
-  toastTotalChecks   Int?     // Total checks from Toast report
-
-  // Computed totals (sum of entries)
-  totalCCTips        Float    @default(0)
-  totalCashTips      Float    @default(0)
-  totalSales         Float    @default(0)
-  totalAllocated     Float    @default(0)
-
-  // Manager who closed the shift
-  closedBy           String?
-  closedAt           DateTime?
-  closeNotes         String?
-
-  location    TipLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  locationId  String
-
-  entries     ShiftEntry[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([locationId, shiftDate, shiftType])
-  @@index([locationId, status])
-}
-
-enum ShiftType {
-  BREAKFAST
-  BRUNCH
-  LUNCH
-  DINNER
-  LATE_NIGHT
-  ALL_DAY
-}
-
-enum ShiftStatus {
-  OPEN        // Shift created, accepting entries
-  IN_PROGRESS // Entries submitted, awaiting reconciliation
-  CLOSED      // Manager closed, finalized
-  REOPENED    // Admin reopened for correction
-}
-
-// Per-server data for a shift
-model ShiftEntry {
-  id            String   @id @default(cuid())
-
-  // Server info
-  serverName    String   // Denormalized for CSV import flexibility
-
-  // From Toast / CSV upload
-  grossSales    Float    @default(0)
-  ccTips        Float    @default(0)
-  cashTips      Float    @default(0)
-  checkCount    Int?
-  declaredTips  Float?   // If tracked separately
-
-  // Computed
-  totalTips     Float    @default(0)  // ccTips + cashTips
-  requiredTipOut Float   @default(0)  // Calculated based on rules (future)
-  actualTipOut  Float    @default(0)  // Sum of allocations
-  netTips       Float    @default(0)  // totalTips - actualTipOut
-
-  // Submission status
-  status        EntryStatus @default(PENDING)
-  submittedAt   DateTime?
-  submittedBy   String?     // Could be server or manager on their behalf
-
-  shift         Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  shiftId       String
-
-  // Optional link to staff record
-  staff         TipStaff? @relation(fields: [staffId], references: [id])
-  staffId       String?
-
-  // Allocations from this server to recipients
-  allocations   TipAllocation[] @relation("AllocationSource")
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@unique([shiftId, serverName])
-  @@index([shiftId, status])
-}
-
-enum EntryStatus {
-  PENDING     // Not yet submitted
-  SUBMITTED   // Server submitted allocations
-  APPROVED    // Manager approved
-  ADJUSTED    // Manager made adjustments
-}
-
-// Individual tip allocation from server to recipient
-model TipAllocation {
-  id             String   @id @default(cuid())
-
-  amount         Float    // Dollar amount allocated
-  recipientName  String   // Name of recipient (for display/matching)
-
-  // Source: the server giving the tip-out
-  entry          ShiftEntry @relation("AllocationSource", fields: [entryId], references: [id], onDelete: Cascade)
-  entryId        String
-
-  // Recipient: linked staff member (optional - for reconciliation)
-  recipientStaff TipStaff?  @relation("AllocationRecipient", fields: [recipientStaffId], references: [id])
-  recipientStaffId String?
-
-  // Optional notes
-  notes          String?
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([entryId])
-  @@index([recipientStaffId])
-}
-
 // Immutable audit log for compliance
 model TipAuditLog {
   id          String   @id @default(cuid())
   action      TipAuditAction
-  entityType  String   // "Shift", "ShiftEntry", "TipAllocation", etc.
+  entityType  String   // "PayPeriod", "CoverPageScan", "TipOut", etc.
   entityId    String
   details     Json?    // Additional context
 
@@ -651,11 +656,12 @@ enum TipAuditAction {
   CREATE
   UPDATE
   DELETE
-  SUBMIT
-  APPROVE
-  CLOSE
-  REOPEN
-  OVERRIDE
+  SCAN_UPLOAD    // Cover page uploaded
+  SCAN_CONFIRM   // Manager confirmed OCR data
+  SCAN_EDIT      // Manager edited OCR data
+  PERIOD_FINALIZE // Pay period finalized
+  PERIOD_EXPORT   // Pay period exported to Toast
+  PERIOD_REOPEN   // Pay period reopened for edits
   LOGIN
   LOGOUT
 }

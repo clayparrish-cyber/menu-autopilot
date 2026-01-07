@@ -41,21 +41,27 @@ export const audit = {
   delete: (entityType: string, entityId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
     logAuditEvent("DELETE", entityType, entityId, details, ctx),
 
-  submit: (entityType: string, entityId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
-    logAuditEvent("SUBMIT", entityType, entityId, details, ctx),
+  // Scan actions
+  scanUpload: (scanId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
+    logAuditEvent("SCAN_UPLOAD", "CoverPageScan", scanId, details, ctx),
 
-  approve: (entityType: string, entityId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
-    logAuditEvent("APPROVE", entityType, entityId, details, ctx),
+  scanConfirm: (scanId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
+    logAuditEvent("SCAN_CONFIRM", "CoverPageScan", scanId, details, ctx),
 
-  close: (entityType: string, entityId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
-    logAuditEvent("CLOSE", entityType, entityId, details, ctx),
+  scanEdit: (scanId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
+    logAuditEvent("SCAN_EDIT", "CoverPageScan", scanId, details, ctx),
 
-  reopen: (entityType: string, entityId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
-    logAuditEvent("REOPEN", entityType, entityId, details, ctx),
+  // Pay period actions
+  periodFinalize: (periodId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
+    logAuditEvent("PERIOD_FINALIZE", "PayPeriod", periodId, details, ctx),
 
-  override: (entityType: string, entityId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
-    logAuditEvent("OVERRIDE", entityType, entityId, details, ctx),
+  periodExport: (periodId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
+    logAuditEvent("PERIOD_EXPORT", "PayPeriod", periodId, details, ctx),
 
+  periodReopen: (periodId: string, details?: Record<string, unknown>, ctx?: AuditContext) =>
+    logAuditEvent("PERIOD_REOPEN", "PayPeriod", periodId, details, ctx),
+
+  // Auth actions
   login: (userId: string, ctx?: AuditContext) =>
     logAuditEvent("LOGIN", "TipUser", userId, undefined, ctx),
 

@@ -106,9 +106,34 @@ export async function getTipAuthContext(): Promise<TipAuthContext | null> {
   };
 }
 
+// Demo mode flag - set to true to skip auth checks
+const DEMO_MODE = true;
+
 // Require auth helper for API routes
 export async function requireTipAuth(): Promise<TipAuthContext> {
-  const ctx = await getTipAuthContext();
+  let ctx = await getTipAuthContext();
+
+  // In demo mode, auto-auth as demo admin
+  if (!ctx && DEMO_MODE) {
+    const demoUser = await prisma.tipUser.findUnique({
+      where: { email: "admin@demo.com" },
+      include: {
+        organization: {
+          include: {
+            locations: { select: { id: true } },
+          },
+        },
+      },
+    });
+    if (demoUser) {
+      ctx = {
+        user: demoUser,
+        organization: demoUser.organization,
+        locationIds: demoUser.organization.locations.map((l) => l.id),
+      };
+    }
+  }
+
   if (!ctx) {
     throw new Error("Unauthorized");
   }
@@ -136,7 +161,7 @@ export async function registerUser(
   password: string,
   name: string,
   organizationId: string,
-  role: TipUserRole = "SERVER"
+  role: TipUserRole = "MANAGER"
 ): Promise<TipUser> {
   const passwordHash = await hashPassword(password);
 

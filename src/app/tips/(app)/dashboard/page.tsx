@@ -1,299 +1,202 @@
-// app/tips/(app)/dashboard/page.tsx
-import { getTipAuthContext } from "@/lib/tips/auth";
-import { prisma } from "@/lib/db";
+"use client";
+
 import Link from "next/link";
-import { Plus, Calendar, Users, MapPin, ChevronRight, Clock } from "lucide-react";
+import { Camera, Table, Clock, DollarSign, FileCheck, AlertCircle } from "lucide-react";
 
-export default async function TipDashboardPage() {
-  const ctx = await getTipAuthContext();
-  if (!ctx) return null;
+// Demo data - in production this would come from API
+const DEMO_DATA = {
+  currentPeriod: {
+    id: "pp-1",
+    startDate: new Date("2026-01-06"),
+    endDate: new Date("2026-01-19"),
+    status: "OPEN" as const,
+    scansCount: 12,
+    pendingReview: 3,
+    confirmed: 9,
+    totalNetTips: 4250.75,
+  },
+  recentScans: [
+    { id: "s1", serverName: "Meggie", shiftDate: new Date("2026-01-06"), netTips: 219.15, status: "CONFIRMED" as const },
+    { id: "s2", serverName: "Diondra", shiftDate: new Date("2026-01-06"), netTips: 285.50, status: "REVIEW" as const },
+    { id: "s3", serverName: "Alex", shiftDate: new Date("2026-01-05"), netTips: 198.25, status: "CONFIRMED" as const },
+    { id: "s4", serverName: "Colette", shiftDate: new Date("2026-01-05"), netTips: 312.00, status: "REVIEW" as const },
+  ],
+};
 
-  const isManager = ctx.user.role === "ADMIN" || ctx.user.role === "MANAGER";
+export default function TipDashboardPage() {
+  const { currentPeriod, recentScans } = DEMO_DATA;
 
-  // Get recent shifts for this org's locations
-  const locations = await prisma.tipLocation.findMany({
-    where: { organizationId: ctx.organization.id },
-    include: {
-      shifts: {
-        orderBy: { shiftDate: "desc" },
-        take: 5,
-        include: {
-          entries: {
-            select: { id: true, status: true },
-          },
-        },
-      },
-      staff: {
-        where: { isActive: true },
-        select: { id: true },
-      },
-    },
-  });
-
-  const hasLocations = locations.length > 0;
-  const totalStaff = locations.reduce((sum, loc) => sum + loc.staff.length, 0);
-  const recentShifts = locations.flatMap((loc) =>
-    loc.shifts.map((shift) => ({ ...shift, locationName: loc.name }))
-  ).sort((a, b) => new Date(b.shiftDate).getTime() - new Date(a.shiftDate).getTime()).slice(0, 5);
-
-  // If server, show their pending entries
-  let pendingEntries: Array<{
-    id: string;
-    shiftDate: Date;
-    shiftType: string;
-    locationName: string;
-  }> = [];
-
-  if (ctx.user.role === "SERVER" && ctx.user.staffId) {
-    const entries = await prisma.shiftEntry.findMany({
-      where: {
-        staffId: ctx.user.staffId,
-        status: "PENDING",
-      },
-      include: {
-        shift: {
-          include: {
-            location: { select: { name: true } },
-          },
-        },
-      },
-      orderBy: { shift: { shiftDate: "desc" } },
-      take: 10,
-    });
-
-    pendingEntries = entries.map((e) => ({
-      id: e.id,
-      shiftDate: e.shift.shiftDate,
-      shiftType: e.shift.shiftType,
-      locationName: e.shift.location.name,
-    }));
-  }
+  const periodDateRange = `${currentPeriod.startDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  })} - ${currentPeriod.endDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  })}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isManager ? "Dashboard" : "My Tips"}
-        </h1>
-        <p className="text-gray-600 mt-1">
-          {isManager
-            ? "Manage shifts and reconcile tip-outs"
-            : "View and submit your tip allocations"}
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-500">Current pay period: {periodDateRange}</p>
       </div>
 
-      {/* Setup prompt for new accounts */}
-      {!hasLocations && ctx.user.role === "ADMIN" && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 shadow-sm">
-          <div className="flex items-start">
-            <MapPin className="h-6 w-6 text-blue-600 mr-3 mt-0.5" />
+      {/* Quick actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link
+          href="/tips/scan"
+          className="flex items-center gap-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-5 transition-colors"
+        >
+          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+            <Camera className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="font-semibold text-lg">Scan Receipts</div>
+            <div className="text-blue-100 text-sm">Upload cover pages</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/tips/ledger"
+          className="flex items-center gap-4 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-5 transition-colors"
+        >
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+            <Table className="h-6 w-6 text-gray-600" />
+          </div>
+          <div>
+            <div className="font-semibold text-lg text-gray-900">View Ledger</div>
+            <div className="text-gray-500 text-sm">Pay period breakdown</div>
+          </div>
+        </Link>
+      </div>
+
+      {/* Period stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-green-600" />
+            </div>
             <div>
-              <h2 className="text-lg font-semibold text-blue-900 mb-2">
-                Welcome to AirTip!
-              </h2>
-              <p className="text-blue-800 mb-4">
-                Get started by setting up your first location and adding staff members.
-              </p>
-              <Link
-                href="/tips/admin/locations"
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Location
-              </Link>
+              <div className="text-xl font-bold text-gray-900">
+                ${currentPeriod.totalNetTips.toLocaleString()}
+              </div>
+              <div className="text-xs text-gray-500">Total net tips</div>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Manager view */}
-      {isManager && hasLocations && (
-        <>
-          {/* Quick stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white shadow rounded-lg p-4">
-              <div className="flex items-center">
-                <MapPin className="h-8 w-8 text-blue-500" />
-                <div className="ml-3">
-                  <div className="text-2xl font-bold text-gray-900">{locations.length}</div>
-                  <div className="text-sm text-gray-500">Locations</div>
-                </div>
-              </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <FileCheck className="h-5 w-5 text-blue-600" />
             </div>
-            <div className="bg-white shadow rounded-lg p-4">
-              <div className="flex items-center">
-                <Users className="h-8 w-8 text-green-500" />
-                <div className="ml-3">
-                  <div className="text-2xl font-bold text-gray-900">{totalStaff}</div>
-                  <div className="text-sm text-gray-500">Active Staff</div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white shadow rounded-lg p-4">
-              <div className="flex items-center">
-                <Clock className="h-8 w-8 text-amber-500" />
-                <div className="ml-3">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {recentShifts.filter((s) => s.status === "OPEN" || s.status === "IN_PROGRESS").length}
-                  </div>
-                  <div className="text-sm text-gray-500">Open Shifts</div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white shadow rounded-lg p-4">
-              <div className="flex items-center">
-                <Calendar className="h-8 w-8 text-emerald-500" />
-                <div className="ml-3">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {recentShifts.filter((s) => s.status === "CLOSED").length}
-                  </div>
-                  <div className="text-sm text-gray-500">Closed This Week</div>
-                </div>
-              </div>
+            <div>
+              <div className="text-xl font-bold text-gray-900">{currentPeriod.confirmed}</div>
+              <div className="text-xs text-gray-500">Confirmed scans</div>
             </div>
           </div>
+        </div>
 
-          {/* Quick actions */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/tips/shifts/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                New Shift
-              </Link>
-              <Link
-                href="/tips/shifts"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                View All Shifts
-              </Link>
-              {ctx.user.role === "ADMIN" && (
-                <Link
-                  href="/tips/admin/staff"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  Manage Staff
-                </Link>
-              )}
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <div className="text-xl font-bold text-gray-900">{currentPeriod.pendingReview}</div>
+              <div className="text-xs text-gray-500">Needs review</div>
             </div>
           </div>
+        </div>
 
-          {/* Recent shifts */}
-          {recentShifts.length > 0 && (
-            <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
-              <div className="px-6 py-4">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Shifts</h2>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+              <Clock className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <div className="text-xl font-bold text-gray-900 capitalize">
+                {currentPeriod.status.toLowerCase()}
               </div>
-              {recentShifts.map((shift) => {
-                const totalEntries = shift.entries.length;
-                const submittedEntries = shift.entries.filter(
-                  (e) => e.status !== "PENDING"
-                ).length;
+              <div className="text-xs text-gray-500">Period status</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-                return (
-                  <Link
-                    key={shift.id}
-                    href={`/tips/shifts/${shift.id}`}
-                    className="flex items-center justify-between px-6 py-4 hover:bg-gray-50"
+      {/* Recent scans */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900">Recent Scans</h2>
+          <Link href="/tips/scan" className="text-sm text-blue-600 hover:text-blue-700">
+            View all
+          </Link>
+        </div>
+        {recentScans.length === 0 ? (
+          <div className="p-8 text-center">
+            <Camera className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No scans yet this period</p>
+            <Link href="/tips/scan" className="text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block">
+              Upload your first receipt
+            </Link>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {recentScans.map((scan) => (
+              <Link
+                key={scan.id}
+                href={`/tips/scan/${scan.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <div>
+                  <div className="font-medium text-gray-900">{scan.serverName}</div>
+                  <div className="text-sm text-gray-500">
+                    {scan.shiftDate.toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="font-medium text-gray-900">${scan.netTips.toFixed(2)}</div>
+                  </div>
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      scan.status === "CONFIRMED"
+                        ? "bg-green-100 text-green-700"
+                        : scan.status === "REVIEW"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
                   >
-                    <div className="flex items-center">
-                      <Calendar className="h-8 w-8 text-blue-500" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-900">
-                          {shift.locationName} - {shift.shiftType}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(shift.shiftDate).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-sm font-medium text-gray-900">
-                          {submittedEntries}/{totalEntries}
-                        </p>
-                        <p className="text-xs text-gray-500">submitted</p>
-                      </div>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          shift.status === "CLOSED"
-                            ? "bg-green-100 text-green-700"
-                            : shift.status === "OPEN"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {shift.status.replace("_", " ")}
-                      </span>
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Server view - pending entries */}
-      {ctx.user.role === "SERVER" && (
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Pending Tip Allocations
-            </h2>
+                    {scan.status === "REVIEW" ? "Needs Review" : scan.status}
+                  </span>
+                </div>
+              </Link>
+            ))}
           </div>
-          {pendingEntries.length === 0 ? (
-            <div className="text-center py-12">
-              <Clock className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium text-gray-900">No pending allocations</h3>
-              <p className="mt-2 text-sm text-gray-500">
-                Check back after your next shift!
-              </p>
+        )}
+      </div>
+
+      {/* Finalize period CTA */}
+      {currentPeriod.pendingReview === 0 && currentPeriod.scansCount > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-green-900">Ready to finalize?</h3>
+              <p className="text-sm text-green-700">All scans confirmed. You can now finalize this pay period.</p>
             </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {pendingEntries.map((entry) => (
-                <Link
-                  key={entry.id}
-                  href={`/tips/shifts/${entry.id}/allocate`}
-                  className="flex items-center justify-between px-6 py-4 hover:bg-gray-50"
-                >
-                  <div className="flex items-center">
-                    <Calendar className="h-8 w-8 text-amber-500" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-900">
-                        {entry.locationName} - {entry.shiftType}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(entry.shiftDate).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-md">
-                      Submit
-                    </span>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+            <Link
+              href="/tips/ledger"
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+            >
+              View & Finalize
+            </Link>
+          </div>
         </div>
       )}
     </div>

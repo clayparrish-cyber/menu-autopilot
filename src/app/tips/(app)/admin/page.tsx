@@ -1,12 +1,18 @@
 // app/tips/(app)/admin/page.tsx
-import { redirect } from "next/navigation";
-import { getTipAuthContext } from "@/lib/tips/auth";
 import Link from "next/link";
+import { TipSettings } from "./tip-settings";
+
+// Demo mode - skip auth check
+const DEMO_MODE = true;
 
 export default async function AdminPage() {
-  const ctx = await getTipAuthContext();
-  if (!ctx) redirect("/tips/login");
-  if (ctx.user.role !== "ADMIN") redirect("/tips/dashboard");
+  // Demo context
+  const ctx = {
+    organization: {
+      id: "demo-org",
+      name: "Demo Restaurant Group",
+    },
+  };
 
   const settingsLinks = [
     {
@@ -43,6 +49,9 @@ export default async function AdminPage() {
           </Link>
         ))}
       </div>
+
+      {/* Tip Settings */}
+      <TipSettings />
 
       {/* Organization info */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">

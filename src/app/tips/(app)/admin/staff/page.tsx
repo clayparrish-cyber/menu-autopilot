@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { X, Check } from "lucide-react";
 
 interface Location {
   id: string;
@@ -15,6 +16,7 @@ interface Staff {
   roleType: string;
   isActive: boolean;
   location: { id: string; name: string };
+  allLocations?: { id: string; name: string }[];
   user: { id: string; email: string } | null;
 }
 
@@ -41,12 +43,13 @@ export default function StaffPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
-    locationId: filterLocationId || "",
+    locationIds: [] as string[],
     roleType: "SERVER",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingLocations, setEditingLocations] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -74,13 +77,24 @@ export default function StaffPage() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (formData.locationIds.length === 0) {
+      setError("Please select at least one location");
+      return;
+    }
+
     setSaving(true);
 
     try {
       const res = await fetch("/tips/api/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          locationId: formData.locationIds[0], // Primary location
+          locationIds: formData.locationIds,   // All locations
+          roleType: formData.roleType,
+        }),
       });
 
       const data = await res.json();
@@ -91,7 +105,7 @@ export default function StaffPage() {
       }
 
       setStaff([...staff, data.staff]);
-      setFormData({ name: "", locationId: filterLocationId || "", roleType: "SERVER" });
+      setFormData({ name: "", locationIds: [], roleType: "SERVER" });
       setShowAddForm(false);
     } catch {
       setError("Something went wrong");
@@ -100,7 +114,7 @@ export default function StaffPage() {
     }
   };
 
-  const handleUpdate = async (id: string, updates: Partial<Staff>) => {
+  const handleUpdate = async (id: string, updates: Partial<Staff> & { locationIds?: string[] }) => {
     try {
       const res = await fetch(`/tips/api/staff/${id}`, {
         method: "PATCH",
@@ -112,6 +126,7 @@ export default function StaffPage() {
         const data = await res.json();
         setStaff(staff.map((s) => (s.id === id ? data.staff : s)));
         setEditingId(null);
+        setEditingLocations(null);
       }
     } catch (err) {
       console.error("Failed to update staff:", err);
@@ -129,6 +144,15 @@ export default function StaffPage() {
     } catch (err) {
       console.error("Failed to deactivate staff:", err);
     }
+  };
+
+  const toggleLocation = (locationId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      locationIds: prev.locationIds.includes(locationId)
+        ? prev.locationIds.filter((id) => id !== locationId)
+        : [...prev.locationIds, locationId],
+    }));
   };
 
   const activeStaff = staff.filter((s) => s.isActive);
@@ -205,7 +229,7 @@ export default function StaffPage() {
             </div>
           ) : (
             <form onSubmit={handleAdd} className="space-y-4">
-              <div className="grid sm:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Name *
@@ -218,22 +242,6 @@ export default function StaffPage() {
                     placeholder="e.g., John Smith"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location *
-                  </label>
-                  <select
-                    value={formData.locationId}
-                    onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  >
-                    <option value="">Select location</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>{loc.name}</option>
-                    ))}
-                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -250,6 +258,39 @@ export default function StaffPage() {
                   </select>
                 </div>
               </div>
+
+              {/* Multi-location selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Locations * <span className="text-gray-400 font-normal">(select all that apply)</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {locations.map((loc) => {
+                    const isSelected = formData.locationIds.includes(loc.id);
+                    return (
+                      <button
+                        key={loc.id}
+                        type="button"
+                        onClick={() => toggleLocation(loc.id)}
+                        className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                          isSelected
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 mr-1.5" />}
+                        {loc.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {formData.locationIds.length > 1 && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    {formData.locationIds.length} locations selected - staff will appear in shifts at all selected locations
+                  </p>
+                )}
+              </div>
+
               <div className="flex gap-3">
                 <button
                   type="submit"
@@ -302,62 +343,97 @@ export default function StaffPage() {
                   <tr>
                     <th className="px-6 py-3 font-medium">Name</th>
                     <th className="px-6 py-3 font-medium">Role</th>
-                    <th className="px-6 py-3 font-medium">Location</th>
+                    <th className="px-6 py-3 font-medium">Locations</th>
                     <th className="px-6 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {activeStaff.map((person) => (
-                    <tr key={person.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        {editingId === person.id ? (
-                          <input
-                            type="text"
-                            defaultValue={person.name}
-                            onBlur={(e) => handleUpdate(person.id, { name: e.target.value })}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                handleUpdate(person.id, { name: e.currentTarget.value });
-                              }
-                              if (e.key === "Escape") setEditingId(null);
-                            }}
-                            className="px-2 py-1 border border-gray-300 rounded"
-                            autoFocus
-                          />
-                        ) : (
-                          <span className="font-medium text-gray-900">{person.name}</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={person.roleType}
-                          onChange={(e) => handleUpdate(person.id, { roleType: e.target.value as Staff["roleType"] })}
-                          className="px-2 py-1 border border-gray-200 rounded text-sm bg-transparent"
-                        >
-                          {ROLE_TYPES.map((role) => (
-                            <option key={role.value} value={role.value}>{role.label}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">{person.location.name}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setEditingId(person.id)}
-                            className="text-sm text-blue-600 hover:text-blue-700"
+                  {activeStaff.map((person) => {
+                    const staffLocations = person.allLocations || [person.location];
+                    const isEditingLocs = editingLocations === person.id;
+
+                    return (
+                      <tr key={person.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          {editingId === person.id ? (
+                            <input
+                              type="text"
+                              defaultValue={person.name}
+                              onBlur={(e) => handleUpdate(person.id, { name: e.target.value })}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleUpdate(person.id, { name: e.currentTarget.value });
+                                }
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                              className="px-2 py-1 border border-gray-300 rounded"
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="font-medium text-gray-900">{person.name}</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <select
+                            value={person.roleType}
+                            onChange={(e) => handleUpdate(person.id, { roleType: e.target.value as Staff["roleType"] })}
+                            className="px-2 py-1 border border-gray-200 rounded text-sm bg-transparent"
                           >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeactivate(person.id)}
-                            className="text-sm text-red-600 hover:text-red-700"
-                          >
-                            Deactivate
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {ROLE_TYPES.map((role) => (
+                              <option key={role.value} value={role.value}>{role.label}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-6 py-4">
+                          {isEditingLocs ? (
+                            <LocationEditor
+                              locations={locations}
+                              selectedIds={staffLocations.map((l) => l.id)}
+                              onSave={(ids) => {
+                                handleUpdate(person.id, { locationIds: ids });
+                              }}
+                              onCancel={() => setEditingLocations(null)}
+                            />
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {staffLocations.map((loc) => (
+                                <span
+                                  key={loc.id}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                                >
+                                  {loc.name}
+                                </span>
+                              ))}
+                              {locations.length > 1 && (
+                                <button
+                                  onClick={() => setEditingLocations(person.id)}
+                                  className="text-xs text-blue-600 hover:text-blue-700 ml-1"
+                                >
+                                  edit
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setEditingId(person.id)}
+                              className="text-sm text-blue-600 hover:text-blue-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeactivate(person.id)}
+                              className="text-sm text-red-600 hover:text-red-700"
+                            >
+                              Deactivate
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -372,21 +448,30 @@ export default function StaffPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <tbody className="divide-y divide-gray-200">
-                    {inactiveStaff.map((person) => (
-                      <tr key={person.id} className="bg-gray-50 text-gray-500">
-                        <td className="px-6 py-4">{person.name}</td>
-                        <td className="px-6 py-4">{ROLE_TYPES.find((r) => r.value === person.roleType)?.label}</td>
-                        <td className="px-6 py-4">{person.location.name}</td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => handleUpdate(person.id, { isActive: true })}
-                            className="text-sm text-blue-600 hover:text-blue-700"
-                          >
-                            Reactivate
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {inactiveStaff.map((person) => {
+                      const staffLocations = person.allLocations || [person.location];
+                      return (
+                        <tr key={person.id} className="bg-gray-50 text-gray-500">
+                          <td className="px-6 py-4">{person.name}</td>
+                          <td className="px-6 py-4">{ROLE_TYPES.find((r) => r.value === person.roleType)?.label}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-wrap gap-1">
+                              {staffLocations.map((loc) => (
+                                <span key={loc.id} className="text-xs">{loc.name}</span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={() => handleUpdate(person.id, { isActive: true })}
+                              className="text-sm text-blue-600 hover:text-blue-700"
+                            >
+                              Reactivate
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -394,6 +479,67 @@ export default function StaffPage() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// Inline location editor component
+function LocationEditor({
+  locations,
+  selectedIds,
+  onSave,
+  onCancel,
+}: {
+  locations: Location[];
+  selectedIds: string[];
+  onSave: (ids: string[]) => void;
+  onCancel: () => void;
+}) {
+  const [selected, setSelected] = useState<string[]>(selectedIds);
+
+  const toggle = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {locations.map((loc) => {
+        const isSelected = selected.includes(loc.id);
+        return (
+          <button
+            key={loc.id}
+            type="button"
+            onClick={() => toggle(loc.id)}
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+              isSelected
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {isSelected && <Check className="w-3 h-3 mr-1" />}
+            {loc.name}
+          </button>
+        );
+      })}
+      <div className="flex gap-1 ml-2">
+        <button
+          onClick={() => selected.length > 0 && onSave(selected)}
+          disabled={selected.length === 0}
+          className="p-1 text-green-600 hover:text-green-700 disabled:text-gray-300"
+          title="Save"
+        >
+          <Check className="w-4 h-4" />
+        </button>
+        <button
+          onClick={onCancel}
+          className="p-1 text-gray-400 hover:text-gray-600"
+          title="Cancel"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }

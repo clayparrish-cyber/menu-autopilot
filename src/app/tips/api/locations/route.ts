@@ -24,7 +24,7 @@ export async function GET() {
           select: { id: true, name: true, roleType: true },
         },
         _count: {
-          select: { shifts: true },
+          select: { coverPageScans: true },
         },
       },
       orderBy: { name: "asc" },

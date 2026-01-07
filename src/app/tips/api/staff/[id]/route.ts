@@ -11,6 +11,7 @@ const updateStaffSchema = z.object({
   name: z.string().min(1).optional(),
   roleType: z.nativeEnum(StaffRoleType).optional(),
   isActive: z.boolean().optional(),
+  locationIds: z.array(z.string()).optional(), // Update all locations
 });
 
 export async function PATCH(
@@ -31,10 +32,51 @@ export async function PATCH(
         id,
         location: { organizationId: ctx.organization.id },
       },
+      include: {
+        locations: true,
+      },
     });
 
     if (!existing) {
       return NextResponse.json({ error: "Staff not found" }, { status: 404 });
+    }
+
+    // If updating locations, verify they all belong to org
+    if (data.locationIds && data.locationIds.length > 0) {
+      const locations = await prisma.tipLocation.findMany({
+        where: {
+          id: { in: data.locationIds },
+          organizationId: ctx.organization.id,
+        },
+      });
+
+      if (locations.length !== data.locationIds.length) {
+        return NextResponse.json({ error: "One or more locations not found" }, { status: 404 });
+      }
+
+      // Update primary location to first in array, manage additional via StaffLocation
+      const [primaryLocationId, ...additionalLocationIds] = data.locationIds;
+
+      // Delete existing additional locations and recreate
+      await prisma.staffLocation.deleteMany({
+        where: { staffId: id },
+      });
+
+      // Create new additional locations
+      if (additionalLocationIds.length > 0) {
+        await prisma.staffLocation.createMany({
+          data: additionalLocationIds.map((locId) => ({
+            staffId: id,
+            locationId: locId,
+          })),
+        });
+      }
+
+      // Update staff with new primary location
+      await prisma.tipStaff.update({
+        where: { id },
+        data: { locationId: primaryLocationId },
+      });
     }
 
     const staff = await prisma.tipStaff.update({
@@ -46,8 +88,20 @@ export async function PATCH(
       },
       include: {
         location: { select: { id: true, name: true } },
+        locations: {
+          include: { location: { select: { id: true, name: true } } },
+        },
       },
     });
+
+    // Transform to include allLocations
+    const staffWithLocations = {
+      ...staff,
+      allLocations: [
+        staff.location,
+        ...staff.locations.map((sl) => sl.location),
+      ].filter((loc, idx, arr) => arr.findIndex((l) => l.id === loc.id) === idx),
+    };
 
     await audit.update("TipStaff", staff.id, {
       changes: data,
@@ -58,7 +112,7 @@ export async function PATCH(
       },
     }, { userId: ctx.user.id });
 
-    return NextResponse.json({ staff });
+    return NextResponse.json({ staff: staffWithLocations });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
