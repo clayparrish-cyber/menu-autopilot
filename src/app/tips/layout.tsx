@@ -1,6 +1,21 @@
 // app/tips/layout.tsx
-// Root layout for AirTip pages
+// Root layout for AirTip pages with Register Tape theme
 import type { Metadata } from "next";
+import { Outfit, IBM_Plex_Mono } from "next/font/google";
+import "./tips.css";
+
+const outfit = Outfit({
+  variable: "--font-display",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "AirTip - Tip Management",
@@ -13,7 +28,7 @@ export default function TipsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`${outfit.variable} ${ibmPlexMono.variable} tips-theme min-h-screen font-[family-name:var(--font-display)]`}>
       {children}
     </div>
   );

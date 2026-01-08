@@ -19,22 +19,22 @@ interface ScanResult {
   error?: string;
 }
 
-// Demo scans for the current period
+// Demo scans using Kamal's real staff names
 const EXISTING_SCANS: ScanResult[] = [
   {
     id: "s1",
     imageUrl: "/placeholder.jpg",
     status: "confirmed",
     extractedData: {
-      serverName: "Meggie",
-      shiftDate: "2026-01-06",
-      grossTips: 311.55,
-      cashOwed: 12.70,
+      serverName: "Margaret Nielsen",
+      shiftDate: "2026-01-14",
+      grossTips: 425.00,
+      cashOwed: 15.00,
       tipOuts: [
-        { recipientName: "Diondre", amount: 14.70 },
-        { recipientName: "Emma", amount: 14.70 },
+        { recipientName: "Moses", amount: 12.08 },
+        { recipientName: "Emma", amount: 10.00 },
       ],
-      netTips: 219.15,
+      netTips: 387.92,
     },
   },
   {
@@ -43,12 +43,13 @@ const EXISTING_SCANS: ScanResult[] = [
     status: "review",
     extractedData: {
       serverName: "Diondra",
-      shiftDate: "2026-01-06",
-      grossTips: 357.81,
+      shiftDate: "2026-01-17",
+      grossTips: 445.00,
       tipOuts: [
-        { recipientName: "Emma", amount: 17.89 },
+        { recipientName: "Moses", amount: 28.30 },
+        { recipientName: "Emma", amount: 25.00 },
       ],
-      netTips: 285.50,
+      netTips: 391.70,
     },
   },
 ];
@@ -145,17 +146,29 @@ export default function ScanPage() {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Scan Receipts</h1>
-        <p className="text-gray-500">Upload cover pages from receipt packets</p>
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: 'var(--tip-text-primary)' }}
+        >
+          Scan Receipts
+        </h1>
+        <p
+          className="font-mono text-sm mt-1"
+          style={{ color: 'var(--tip-text-muted)' }}
+        >
+          Upload cover pages from receipt packets
+        </p>
       </div>
 
       {/* Upload area */}
       <div
-        className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-          dragActive
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-300 hover:border-gray-400"
+        className={`relative rounded-2xl p-8 text-center transition-all duration-200 ${
+          dragActive ? 'scale-[1.02]' : ''
         }`}
+        style={{
+          background: dragActive ? 'var(--tip-accent-glow)' : 'var(--tip-bg-elevated)',
+          border: dragActive ? '2px dashed var(--tip-accent)' : '2px dashed var(--tip-border)',
+        }}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -172,28 +185,45 @@ export default function ScanPage() {
         />
 
         <div className="space-y-4">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
+            style={{
+              background: uploading ? 'var(--tip-accent-glow)' : 'var(--tip-bg-surface)',
+            }}
+          >
             {uploading ? (
-              <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+              <Loader2
+                className="h-8 w-8 animate-spin"
+                style={{ color: 'var(--tip-accent)' }}
+              />
             ) : (
-              <Camera className="h-8 w-8 text-gray-400" />
+              <Camera
+                className="h-8 w-8"
+                style={{ color: 'var(--tip-text-muted)' }}
+              />
             )}
           </div>
 
           <div>
-            <p className="text-gray-900 font-medium">
+            <p
+              className="font-medium"
+              style={{ color: 'var(--tip-text-primary)' }}
+            >
               {uploading ? "Processing..." : "Drop images here or click to upload"}
             </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Take photos of cover pages - you can upload multiple at once
+            <p
+              className="text-sm mt-1 font-mono"
+              style={{ color: 'var(--tip-text-muted)' }}
+            >
+              Take photos of cover pages - batch upload supported
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="inline-flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-xl transition-colors"
+              className="tip-btn-primary inline-flex items-center justify-center px-6 py-3 rounded-xl disabled:opacity-50"
             >
               <Camera className="mr-2 h-5 w-5" />
               Take Photo
@@ -207,7 +237,7 @@ export default function ScanPage() {
                 }
               }}
               disabled={uploading}
-              className="inline-flex items-center justify-center px-5 py-3 bg-white border border-gray-200 hover:border-gray-300 disabled:opacity-50 text-gray-700 font-medium rounded-xl transition-colors"
+              className="tip-btn-secondary inline-flex items-center justify-center px-6 py-3 rounded-xl disabled:opacity-50"
             >
               <Upload className="mr-2 h-5 w-5" />
               Choose Files
@@ -218,26 +248,41 @@ export default function ScanPage() {
 
       {/* Processing scans */}
       {processingScans.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="font-semibold text-gray-900">Processing...</h2>
+        <div className="space-y-3 animate-slide-up">
+          <h2 className="font-semibold" style={{ color: 'var(--tip-text-primary)' }}>
+            Processing...
+          </h2>
           <div className="grid gap-3">
             {processingScans.map((scan) => (
               <div
                 key={scan.id}
-                className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4"
+                className="flex items-center gap-4 rounded-xl p-4"
+                style={{
+                  background: 'var(--tip-bg-elevated)',
+                  border: '1px solid var(--tip-border)',
+                }}
               >
-                <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                <div
+                  className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0"
+                  style={{ background: 'var(--tip-bg-surface)' }}
+                >
                   <img
                     src={scan.imageUrl}
                     alt="Processing"
                     className="w-full h-full object-cover opacity-50"
                   />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
-                    <span className="text-gray-600">Extracting data...</span>
-                  </div>
+                <div className="flex-1 flex items-center gap-2">
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    style={{ color: 'var(--tip-accent)' }}
+                  />
+                  <span
+                    className="font-mono text-sm"
+                    style={{ color: 'var(--tip-text-secondary)' }}
+                  >
+                    Extracting data...
+                  </span>
                 </div>
               </div>
             ))}
@@ -248,18 +293,25 @@ export default function ScanPage() {
       {/* Needs review */}
       {reviewScans.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-amber-500" />
+          <h2 className="font-semibold flex items-center gap-2" style={{ color: 'var(--tip-text-primary)' }}>
+            <AlertCircle className="h-5 w-5" style={{ color: 'var(--tip-warning)' }} />
             Needs Review ({reviewScans.length})
           </h2>
           <div className="grid gap-3">
             {reviewScans.map((scan) => (
               <div
                 key={scan.id}
-                className="bg-white border border-amber-200 rounded-xl p-4"
+                className="rounded-xl p-4"
+                style={{
+                  background: 'var(--tip-bg-elevated)',
+                  border: '1px solid rgba(240, 180, 41, 0.3)',
+                }}
               >
                 <div className="flex gap-4">
-                  <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                  <div
+                    className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0"
+                    style={{ background: 'var(--tip-bg-surface)' }}
+                  >
                     <img
                       src={scan.imageUrl}
                       alt="Receipt"
@@ -270,46 +322,84 @@ export default function ScanPage() {
                     {scan.extractedData && (
                       <>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-gray-900">
+                          <span
+                            className="font-semibold"
+                            style={{ color: 'var(--tip-text-primary)' }}
+                          >
                             {scan.extractedData.serverName}
                           </span>
-                          <span className="text-sm text-gray-500">
+                          <span
+                            className="text-sm font-mono"
+                            style={{ color: 'var(--tip-text-muted)' }}
+                          >
                             {scan.extractedData.shiftDate}
                           </span>
                         </div>
-                        <div className="mt-1 text-sm text-gray-600">
-                          Gross: ${scan.extractedData.grossTips.toFixed(2)}
-                          {scan.extractedData.cashOwed && (
-                            <span className="text-gray-400">
-                              {" "}- ${scan.extractedData.cashOwed.toFixed(2)} cash
-                            </span>
-                          )}
-                        </div>
-                        {scan.extractedData.tipOuts.length > 0 && (
-                          <div className="mt-1 text-sm text-gray-500">
-                            Tip-outs:{" "}
-                            {scan.extractedData.tipOuts
-                              .map((t) => `${t.recipientName} $${t.amount}`)
-                              .join(", ")}
+                        {/* Summary row */}
+                        <div
+                          className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm font-mono"
+                        >
+                          <div style={{ color: 'var(--tip-text-muted)' }}>Gross</div>
+                          <div style={{ color: 'var(--tip-text-secondary)' }}>
+                            ${scan.extractedData.grossTips.toFixed(2)}
                           </div>
-                        )}
-                        <div className="mt-1 font-medium text-green-600">
-                          Net: ${scan.extractedData.netTips.toFixed(2)}
+
+                          {scan.extractedData.cashOwed && (
+                            <>
+                              <div style={{ color: 'var(--tip-text-muted)' }}>Cash owed</div>
+                              <div style={{ color: 'var(--tip-text-secondary)' }}>
+                                -${scan.extractedData.cashOwed.toFixed(2)}
+                              </div>
+                            </>
+                          )}
+
+                          {scan.extractedData.tipOuts.map((tipOut, idx) => (
+                            <>
+                              <div key={`label-${idx}`} style={{ color: 'var(--tip-text-muted)' }}>
+                                {idx === 0 ? 'Tip-outs' : ''}
+                              </div>
+                              <div key={`amount-${idx}`} style={{ color: 'var(--tip-text-secondary)' }}>
+                                {tipOut.recipientName} -${tipOut.amount.toFixed(2)}
+                              </div>
+                            </>
+                          ))}
+
+                          <div
+                            className="font-semibold pt-1"
+                            style={{
+                              color: 'var(--tip-accent)',
+                              borderTop: '1px dashed var(--tip-border)',
+                            }}
+                          >
+                            Net
+                          </div>
+                          <div
+                            className="font-semibold pt-1"
+                            style={{
+                              color: 'var(--tip-accent)',
+                              borderTop: '1px dashed var(--tip-border)',
+                            }}
+                          >
+                            ${scan.extractedData.netTips.toFixed(2)}
+                          </div>
                         </div>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                <div
+                  className="flex gap-2 mt-4 pt-4"
+                  style={{ borderTop: '1px dashed var(--tip-border)' }}
+                >
                   <Link
                     href={`/tips/scan/${scan.id}/edit`}
-                    className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg text-center text-sm transition-colors"
+                    className="tip-btn-secondary flex-1 px-3 py-2.5 rounded-lg text-center text-sm font-medium"
                   >
                     Edit
                   </Link>
                   <button
                     onClick={() => confirmScan(scan.id)}
-                    className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg text-sm transition-colors inline-flex items-center justify-center gap-1"
+                    className="tip-btn-primary flex-1 px-3 py-2.5 rounded-lg text-sm inline-flex items-center justify-center gap-1"
                   >
                     <Check className="h-4 w-4" />
                     Confirm
@@ -324,49 +414,71 @@ export default function ScanPage() {
       {/* Confirmed scans */}
       {confirmedScans.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-            <Check className="h-5 w-5 text-green-500" />
+          <h2 className="font-semibold flex items-center gap-2" style={{ color: 'var(--tip-text-primary)' }}>
+            <Check className="h-5 w-5" style={{ color: 'var(--tip-success)' }} />
             Confirmed ({confirmedScans.length})
           </h2>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="divide-y divide-gray-100">
-              {confirmedScans.map((scan) => (
-                <div
-                  key={scan.id}
-                  className="flex items-center justify-between px-4 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden">
-                      <img
-                        src={scan.imageUrl}
-                        alt="Receipt"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {scan.extractedData?.serverName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {scan.extractedData?.shiftDate}
-                      </div>
-                    </div>
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: 'var(--tip-bg-elevated)',
+              border: '1px solid var(--tip-border)',
+            }}
+          >
+            {confirmedScans.map((scan, index) => (
+              <div
+                key={scan.id}
+                className="flex items-center justify-between px-4 py-3"
+                style={{
+                  borderBottom: index < confirmedScans.length - 1 ? '1px solid var(--tip-border-subtle)' : 'none',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-lg overflow-hidden"
+                    style={{ background: 'var(--tip-bg-surface)' }}
+                  >
+                    <img
+                      src={scan.imageUrl}
+                      alt="Receipt"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-green-600">
-                      ${scan.extractedData?.netTips.toFixed(2)}
-                    </span>
-                    <button
-                      onClick={() => removeScan(scan.id)}
-                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      title="Remove"
+                  <div>
+                    <div
+                      className="font-medium"
+                      style={{ color: 'var(--tip-text-primary)' }}
                     >
-                      <X className="h-4 w-4" />
-                    </button>
+                      {scan.extractedData?.serverName}
+                    </div>
+                    <div
+                      className="text-sm font-mono"
+                      style={{ color: 'var(--tip-text-muted)' }}
+                    >
+                      {scan.extractedData?.shiftDate}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="font-semibold font-mono"
+                    style={{ color: 'var(--tip-accent)' }}
+                  >
+                    ${scan.extractedData?.netTips.toFixed(2)}
+                  </span>
+                  <button
+                    onClick={() => removeScan(scan.id)}
+                    className="p-1.5 rounded-lg transition-colors"
+                    style={{ color: 'var(--tip-text-muted)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--tip-error)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--tip-text-muted)'}
+                    title="Remove"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -375,15 +487,26 @@ export default function ScanPage() {
       {confirmedScans.length > 0 && (
         <Link
           href="/tips/ledger"
-          className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100 transition-colors"
+          className="flex items-center justify-between rounded-xl p-5 transition-all duration-200"
+          style={{
+            background: 'var(--tip-accent-glow)',
+            border: '1px solid var(--tip-accent-dim)',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px var(--tip-accent-glow)'}
+          onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
         >
           <div>
-            <h3 className="font-semibold text-blue-900">View Pay Period Ledger</h3>
-            <p className="text-sm text-blue-700">
+            <h3 className="font-semibold" style={{ color: 'var(--tip-accent)' }}>
+              View Pay Period Ledger
+            </h3>
+            <p
+              className="text-sm mt-0.5"
+              style={{ color: 'var(--tip-text-secondary)' }}
+            >
               See the full breakdown by staff and date
             </p>
           </div>
-          <ChevronRight className="h-5 w-5 text-blue-400" />
+          <ChevronRight className="h-5 w-5" style={{ color: 'var(--tip-accent)' }} />
         </Link>
       )}
     </div>

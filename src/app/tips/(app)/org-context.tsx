@@ -61,8 +61,7 @@ export function OrgProvider({
 export function useOrgSettings() {
   const ctx = useContext(OrgContext);
   if (!ctx) {
-    // Return defaults if no provider (for SSR or outside app)
-    return { settings: { usesCashTips: true }, updateSettings: () => {} };
+    throw new Error("useOrgSettings must be used within OrgProvider");
   }
   return ctx;
 }
@@ -70,12 +69,7 @@ export function useOrgSettings() {
 export function useCurrentUser() {
   const ctx = useContext(UserContext);
   if (!ctx) {
-    // Return demo admin if no provider
-    return {
-      user: { id: "demo", name: "Demo Admin", email: "admin@demo.com", role: "ADMIN" as const },
-      isAdmin: true,
-      isManager: true,
-    };
+    throw new Error("useCurrentUser must be used within OrgProvider");
   }
   return ctx;
 }

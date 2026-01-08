@@ -228,6 +228,46 @@ For operators with multiple locations:
 
 ---
 
+## AirTip MVP - Pending Features
+
+Features discussed during MVP development, awaiting Toast API access or further implementation:
+
+### Cover Page OCR (OpenAI Vision)
+**Status:** Deferred until Toast access available
+**Why wait:** Need to see actual Toast data structure to avoid rework on field mapping
+
+- Scan cover page photos from receipt packets
+- Extract: server name, shift date, gross tips, cash owed, tip-outs, net tips
+- Auto-match server names to staff roster (fuzzy matching)
+- Confidence scores for extracted values
+- Queue low-confidence scans for manual review
+
+### Toast Gross Tips Validation
+**Status:** Placeholder UI added, needs Toast API
+
+- Compare sum of scanned gross tips vs. Toast-reported gross tips for period
+- Surface discrepancy: "AirTip: $12,450 | Toast: $12,680 | Missing: $230"
+- Helps catch missing receipts before finalizing pay period
+- Location in UI: Ledger page, near totals section
+
+### Review/Edit Screen for Scans
+**Status:** Not yet built
+
+- Full-screen view of scanned cover page image
+- Side-by-side with extracted/editable fields
+- Field-level confidence indicators
+- "Accept" / "Edit & Accept" / "Reject" actions
+- Link extracted tip-outs to staff roster
+
+### Export to Toast Format
+**Status:** Basic CSV export built, Toast-specific format TBD
+
+- Current: Generic CSV with staff, role, daily tips, totals
+- Needed: Match exact Toast payroll import format
+- May need: Employee ID mapping, specific column names, date formats
+
+---
+
 ## Design Principles
 
 - Avoid becoming project management software - focus on insights and recommendations

@@ -91,8 +91,8 @@ export default function StaffPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
-          locationId: formData.locationIds[0], // Primary location
-          locationIds: formData.locationIds,   // All locations
+          locationId: formData.locationIds[0],
+          locationIds: formData.locationIds,
           roleType: formData.roleType,
         }),
       });
@@ -161,26 +161,31 @@ export default function StaffPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading...</div>
+        <div style={{ color: 'var(--tip-text-muted)' }}>Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <Link href="/tips/admin" className="hover:text-gray-700">Settings</Link>
+          <div className="flex items-center gap-2 text-sm mb-1" style={{ color: 'var(--tip-text-muted)' }}>
+            <Link href="/tips/admin" style={{ color: 'var(--tip-text-secondary)' }}>Settings</Link>
             <span>/</span>
             <span>Staff</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Staff</h1>
+          <h1
+            className="text-2xl font-bold tracking-tight"
+            style={{ color: 'var(--tip-text-primary)' }}
+          >
+            Staff
+          </h1>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          className="tip-btn-primary px-4 py-2 rounded-lg font-medium"
         >
           + Add Staff
         </button>
@@ -189,7 +194,7 @@ export default function StaffPage() {
       {/* Location filter */}
       {locations.length > 1 && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Filter by location:</span>
+          <span className="text-sm" style={{ color: 'var(--tip-text-muted)' }}>Filter:</span>
           <select
             value={filterLocationId || ""}
             onChange={(e) => {
@@ -198,7 +203,7 @@ export default function StaffPage() {
                 : "/tips/admin/staff";
               window.location.href = url;
             }}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+            className="tip-input px-3 py-1.5 text-sm rounded-lg"
           >
             <option value="">All locations</option>
             {locations.map((loc) => (
@@ -210,19 +215,40 @@ export default function StaffPage() {
 
       {/* Add form */}
       {showAddForm && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Staff Member</h2>
+        <div
+          className="rounded-xl p-6"
+          style={{
+            background: 'var(--tip-bg-elevated)',
+            border: '1px solid var(--tip-border)',
+          }}
+        >
+          <h2
+            className="text-lg font-semibold mb-4"
+            style={{ color: 'var(--tip-text-primary)' }}
+          >
+            Add Staff Member
+          </h2>
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div
+              className="mb-4 p-3 rounded-lg text-sm"
+              style={{
+                background: 'rgba(239, 100, 97, 0.1)',
+                border: '1px solid rgba(239, 100, 97, 0.3)',
+                color: 'var(--tip-error)',
+              }}
+            >
               {error}
             </div>
           )}
           {locations.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-gray-600 mb-3">You need to create a location first</p>
+              <p style={{ color: 'var(--tip-text-muted)' }} className="mb-3">
+                You need to create a location first
+              </p>
               <Link
                 href="/tips/admin/locations"
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className="font-medium"
+                style={{ color: 'var(--tip-accent)' }}
               >
                 Add Location
               </Link>
@@ -231,7 +257,10 @@ export default function StaffPage() {
             <form onSubmit={handleAdd} className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    className="block text-sm font-medium mb-1"
+                    style={{ color: 'var(--tip-text-secondary)' }}
+                  >
                     Name *
                   </label>
                   <input
@@ -240,17 +269,20 @@ export default function StaffPage() {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                     placeholder="e.g., John Smith"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="tip-input w-full px-3 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    className="block text-sm font-medium mb-1"
+                    style={{ color: 'var(--tip-text-secondary)' }}
+                  >
                     Role
                   </label>
                   <select
                     value={formData.roleType}
                     onChange={(e) => setFormData({ ...formData, roleType: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="tip-input w-full px-3 py-2"
                   >
                     {ROLE_TYPES.map((role) => (
                       <option key={role.value} value={role.value}>{role.label}</option>
@@ -261,8 +293,11 @@ export default function StaffPage() {
 
               {/* Multi-location selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Locations * <span className="text-gray-400 font-normal">(select all that apply)</span>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: 'var(--tip-text-secondary)' }}
+                >
+                  Locations * <span style={{ color: 'var(--tip-text-muted)' }}>(select all that apply)</span>
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {locations.map((loc) => {
@@ -272,11 +307,11 @@ export default function StaffPage() {
                         key={loc.id}
                         type="button"
                         onClick={() => toggleLocation(loc.id)}
-                        className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                          isSelected
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
+                        className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+                        style={{
+                          background: isSelected ? 'var(--tip-accent)' : 'var(--tip-bg-surface)',
+                          color: isSelected ? 'var(--tip-bg-deep)' : 'var(--tip-text-secondary)',
+                        }}
                       >
                         {isSelected && <Check className="w-3.5 h-3.5 mr-1.5" />}
                         {loc.name}
@@ -285,8 +320,8 @@ export default function StaffPage() {
                   })}
                 </div>
                 {formData.locationIds.length > 1 && (
-                  <p className="mt-2 text-xs text-gray-500">
-                    {formData.locationIds.length} locations selected - staff will appear in shifts at all selected locations
+                  <p className="mt-2 text-xs" style={{ color: 'var(--tip-text-muted)' }}>
+                    {formData.locationIds.length} locations selected
                   </p>
                 )}
               </div>
@@ -295,7 +330,7 @@ export default function StaffPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors"
+                  className="tip-btn-primary px-4 py-2 rounded-lg font-medium disabled:opacity-50"
                 >
                   {saving ? "Adding..." : "Add Staff"}
                 </button>
@@ -305,7 +340,7 @@ export default function StaffPage() {
                     setShowAddForm(false);
                     setError("");
                   }}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
+                  className="tip-btn-secondary px-4 py-2 rounded-lg font-medium"
                 >
                   Cancel
                 </button>
@@ -317,14 +352,27 @@ export default function StaffPage() {
 
       {/* Staff list */}
       {activeStaff.length === 0 && inactiveStaff.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <div className="text-4xl mb-3">👥</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">No staff yet</h2>
-          <p className="text-gray-600 mb-4">Add your team members to start tracking tips</p>
+        <div
+          className="rounded-xl p-8 text-center"
+          style={{
+            background: 'var(--tip-bg-elevated)',
+            border: '1px solid var(--tip-border)',
+          }}
+        >
+          <div className="text-4xl mb-3 font-mono">{"{}"}</div>
+          <h2
+            className="text-lg font-semibold mb-1"
+            style={{ color: 'var(--tip-text-primary)' }}
+          >
+            No staff yet
+          </h2>
+          <p className="mb-4" style={{ color: 'var(--tip-text-muted)' }}>
+            Add your team members to start tracking tips
+          </p>
           {!showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              className="tip-btn-primary px-4 py-2 rounded-lg font-medium"
             >
               + Add Staff
             </button>
@@ -333,27 +381,63 @@ export default function StaffPage() {
       ) : (
         <>
           {/* Active staff table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="font-semibold text-gray-900">Active Staff ({activeStaff.length})</h2>
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: 'var(--tip-bg-elevated)',
+              border: '1px solid var(--tip-border)',
+            }}
+          >
+            <div
+              className="px-6 py-4"
+              style={{ borderBottom: '1px solid var(--tip-border)' }}
+            >
+              <h2 className="font-semibold" style={{ color: 'var(--tip-text-primary)' }}>
+                Active Staff ({activeStaff.length})
+              </h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 text-left text-sm text-gray-600">
-                  <tr>
-                    <th className="px-6 py-3 font-medium">Name</th>
-                    <th className="px-6 py-3 font-medium">Role</th>
-                    <th className="px-6 py-3 font-medium">Locations</th>
-                    <th className="px-6 py-3 font-medium">Actions</th>
+                <thead>
+                  <tr style={{ background: 'var(--tip-bg-surface)' }}>
+                    <th
+                      className="px-6 py-3 text-left text-sm font-medium"
+                      style={{ color: 'var(--tip-text-muted)' }}
+                    >
+                      Name
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-sm font-medium"
+                      style={{ color: 'var(--tip-text-muted)' }}
+                    >
+                      Role
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-sm font-medium"
+                      style={{ color: 'var(--tip-text-muted)' }}
+                    >
+                      Locations
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-sm font-medium"
+                      style={{ color: 'var(--tip-text-muted)' }}
+                    >
+                      Actions
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {activeStaff.map((person) => {
+                <tbody>
+                  {activeStaff.map((person, idx) => {
                     const staffLocations = person.allLocations || [person.location];
                     const isEditingLocs = editingLocations === person.id;
 
                     return (
-                      <tr key={person.id} className="hover:bg-gray-50">
+                      <tr
+                        key={person.id}
+                        style={{
+                          borderBottom: idx < activeStaff.length - 1 ? '1px solid var(--tip-border-subtle)' : 'none',
+                        }}
+                      >
                         <td className="px-6 py-4">
                           {editingId === person.id ? (
                             <input
@@ -366,18 +450,20 @@ export default function StaffPage() {
                                 }
                                 if (e.key === "Escape") setEditingId(null);
                               }}
-                              className="px-2 py-1 border border-gray-300 rounded"
+                              className="tip-input px-2 py-1"
                               autoFocus
                             />
                           ) : (
-                            <span className="font-medium text-gray-900">{person.name}</span>
+                            <span className="font-medium" style={{ color: 'var(--tip-text-primary)' }}>
+                              {person.name}
+                            </span>
                           )}
                         </td>
                         <td className="px-6 py-4">
                           <select
                             value={person.roleType}
                             onChange={(e) => handleUpdate(person.id, { roleType: e.target.value as Staff["roleType"] })}
-                            className="px-2 py-1 border border-gray-200 rounded text-sm bg-transparent"
+                            className="tip-input px-2 py-1 text-sm rounded"
                           >
                             {ROLE_TYPES.map((role) => (
                               <option key={role.value} value={role.value}>{role.label}</option>
@@ -399,7 +485,11 @@ export default function StaffPage() {
                               {staffLocations.map((loc) => (
                                 <span
                                   key={loc.id}
-                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                                  style={{
+                                    background: 'var(--tip-accent-glow)',
+                                    color: 'var(--tip-accent)',
+                                  }}
                                 >
                                   {loc.name}
                                 </span>
@@ -407,7 +497,8 @@ export default function StaffPage() {
                               {locations.length > 1 && (
                                 <button
                                   onClick={() => setEditingLocations(person.id)}
-                                  className="text-xs text-blue-600 hover:text-blue-700 ml-1"
+                                  className="text-xs ml-1"
+                                  style={{ color: 'var(--tip-accent)' }}
                                 >
                                   edit
                                 </button>
@@ -419,13 +510,15 @@ export default function StaffPage() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setEditingId(person.id)}
-                              className="text-sm text-blue-600 hover:text-blue-700"
+                              className="text-sm"
+                              style={{ color: 'var(--tip-accent)' }}
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeactivate(person.id)}
-                              className="text-sm text-red-600 hover:text-red-700"
+                              className="text-sm"
+                              style={{ color: 'var(--tip-error)' }}
                             >
                               Deactivate
                             </button>
@@ -441,30 +534,58 @@ export default function StaffPage() {
 
           {/* Inactive staff */}
           {inactiveStaff.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-500">Inactive Staff ({inactiveStaff.length})</h2>
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{
+                background: 'var(--tip-bg-elevated)',
+                border: '1px solid var(--tip-border)',
+              }}
+            >
+              <div
+                className="px-6 py-4"
+                style={{ borderBottom: '1px solid var(--tip-border)' }}
+              >
+                <h2 className="font-semibold" style={{ color: 'var(--tip-text-muted)' }}>
+                  Inactive Staff ({inactiveStaff.length})
+                </h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <tbody className="divide-y divide-gray-200">
-                    {inactiveStaff.map((person) => {
+                  <tbody>
+                    {inactiveStaff.map((person, idx) => {
                       const staffLocations = person.allLocations || [person.location];
                       return (
-                        <tr key={person.id} className="bg-gray-50 text-gray-500">
-                          <td className="px-6 py-4">{person.name}</td>
-                          <td className="px-6 py-4">{ROLE_TYPES.find((r) => r.value === person.roleType)?.label}</td>
+                        <tr
+                          key={person.id}
+                          style={{
+                            background: 'var(--tip-bg-surface)',
+                            borderBottom: idx < inactiveStaff.length - 1 ? '1px solid var(--tip-border-subtle)' : 'none',
+                          }}
+                        >
+                          <td className="px-6 py-4" style={{ color: 'var(--tip-text-muted)' }}>
+                            {person.name}
+                          </td>
+                          <td className="px-6 py-4" style={{ color: 'var(--tip-text-muted)' }}>
+                            {ROLE_TYPES.find((r) => r.value === person.roleType)?.label}
+                          </td>
                           <td className="px-6 py-4">
                             <div className="flex flex-wrap gap-1">
                               {staffLocations.map((loc) => (
-                                <span key={loc.id} className="text-xs">{loc.name}</span>
+                                <span
+                                  key={loc.id}
+                                  className="text-xs"
+                                  style={{ color: 'var(--tip-text-muted)' }}
+                                >
+                                  {loc.name}
+                                </span>
                               ))}
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <button
                               onClick={() => handleUpdate(person.id, { isActive: true })}
-                              className="text-sm text-blue-600 hover:text-blue-700"
+                              className="text-sm"
+                              style={{ color: 'var(--tip-accent)' }}
                             >
                               Reactivate
                             </button>
@@ -512,11 +633,11 @@ function LocationEditor({
             key={loc.id}
             type="button"
             onClick={() => toggle(loc.id)}
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-              isSelected
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
+            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
+            style={{
+              background: isSelected ? 'var(--tip-accent)' : 'var(--tip-bg-surface)',
+              color: isSelected ? 'var(--tip-bg-deep)' : 'var(--tip-text-muted)',
+            }}
           >
             {isSelected && <Check className="w-3 h-3 mr-1" />}
             {loc.name}
@@ -527,14 +648,16 @@ function LocationEditor({
         <button
           onClick={() => selected.length > 0 && onSave(selected)}
           disabled={selected.length === 0}
-          className="p-1 text-green-600 hover:text-green-700 disabled:text-gray-300"
+          className="p-1"
+          style={{ color: selected.length > 0 ? 'var(--tip-success)' : 'var(--tip-text-muted)' }}
           title="Save"
         >
           <Check className="w-4 h-4" />
         </button>
         <button
           onClick={onCancel}
-          className="p-1 text-gray-400 hover:text-gray-600"
+          className="p-1"
+          style={{ color: 'var(--tip-text-muted)' }}
           title="Cancel"
         >
           <X className="w-4 h-4" />

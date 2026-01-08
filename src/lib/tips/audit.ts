@@ -17,17 +17,22 @@ export async function logAuditEvent(
   details?: Record<string, unknown>,
   ctx?: AuditContext
 ): Promise<void> {
-  await prisma.tipAuditLog.create({
-    data: {
-      action,
-      entityType,
-      entityId,
-      details: details as Prisma.InputJsonValue | undefined,
-      userId: ctx?.userId,
-      ipAddress: ctx?.ipAddress,
-      userAgent: ctx?.userAgent,
-    },
-  });
+  try {
+    await prisma.tipAuditLog.create({
+      data: {
+        action,
+        entityType,
+        entityId,
+        details: details as Prisma.InputJsonValue | undefined,
+        userId: ctx?.userId,
+        ipAddress: ctx?.ipAddress,
+        userAgent: ctx?.userAgent,
+      },
+    });
+  } catch (error) {
+    // Log to console but don't throw - audit failures shouldn't break operations
+    console.error("Audit log failed:", action, entityType, entityId, error);
+  }
 }
 
 // Convenience functions for common actions

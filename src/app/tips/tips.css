@@ -1,0 +1,190 @@
+/* AirTip Design System - Register Tape Aesthetic */
+
+/*
+ * A refined dark theme inspired by thermal receipt printers and terminals.
+ * Warm cream on charcoal with mint green accents.
+ */
+
+:root {
+  /* Background layers */
+  --tip-bg-deep: #0a0a0b;
+  --tip-bg-base: #111113;
+  --tip-bg-elevated: #18181b;
+  --tip-bg-surface: #1f1f23;
+  --tip-bg-hover: #27272b;
+
+  /* Text colors - cream/warm white like aged paper */
+  --tip-text-primary: #f4f4f0;
+  --tip-text-secondary: #a1a1a0;
+  --tip-text-muted: #636366;
+
+  /* Accent - muted mint green (terminal/money) */
+  --tip-accent: #3dd68c;
+  --tip-accent-dim: #2a9d68;
+  --tip-accent-glow: rgba(61, 214, 140, 0.15);
+
+  /* Status colors */
+  --tip-success: #3dd68c;
+  --tip-warning: #f0b429;
+  --tip-error: #ef6461;
+  --tip-info: #5eb1ef;
+
+  /* Borders */
+  --tip-border: #27272b;
+  --tip-border-subtle: #1f1f23;
+
+  /* Receipt paper texture overlay */
+  --tip-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Base styles for tips pages */
+.tips-theme {
+  background-color: var(--tip-bg-base);
+  color: var(--tip-text-primary);
+}
+
+/* Subtle paper texture overlay */
+.tips-theme::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--tip-noise);
+  opacity: 0.015;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Receipt-style dotted border */
+.receipt-border {
+  border-style: dashed;
+  border-color: var(--tip-border);
+}
+
+/* Monospace styling for numbers/data */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Card component */
+.tip-card {
+  background: var(--tip-bg-elevated);
+  border: 1px solid var(--tip-border);
+  border-radius: 12px;
+}
+
+.tip-card-hover:hover {
+  background: var(--tip-bg-surface);
+  border-color: var(--tip-border);
+}
+
+/* Button variants */
+.tip-btn-primary {
+  background: var(--tip-accent);
+  color: var(--tip-bg-deep);
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.tip-btn-primary:hover {
+  background: var(--tip-accent-dim);
+  box-shadow: 0 0 20px var(--tip-accent-glow);
+}
+
+.tip-btn-secondary {
+  background: var(--tip-bg-surface);
+  color: var(--tip-text-primary);
+  border: 1px solid var(--tip-border);
+  transition: all 0.15s ease;
+}
+
+.tip-btn-secondary:hover {
+  background: var(--tip-bg-hover);
+  border-color: var(--tip-text-muted);
+}
+
+/* Status badges */
+.tip-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.tip-badge-success {
+  background: rgba(61, 214, 140, 0.15);
+  color: var(--tip-success);
+}
+
+.tip-badge-warning {
+  background: rgba(240, 180, 41, 0.15);
+  color: var(--tip-warning);
+}
+
+.tip-badge-info {
+  background: rgba(94, 177, 239, 0.15);
+  color: var(--tip-info);
+}
+
+/* Input styling */
+.tip-input {
+  background: var(--tip-bg-deep);
+  border: 1px solid var(--tip-border);
+  color: var(--tip-text-primary);
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tip-input:focus {
+  outline: none;
+  border-color: var(--tip-accent);
+  box-shadow: 0 0 0 3px var(--tip-accent-glow);
+}
+
+.tip-input::placeholder {
+  color: var(--tip-text-muted);
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--tip-accent-glow); }
+  50% { box-shadow: 0 0 20px 5px var(--tip-accent-glow); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+.animate-stagger > * {
+  animation: slideUp 0.4s ease-out backwards;
+}
+
+.animate-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.animate-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.animate-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.animate-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.animate-stagger > *:nth-child(6) { animation-delay: 250ms; }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { AirTipIcon } from "../components/logo";
 
 export default function TipLoginPage() {
   const router = useRouter();
@@ -39,27 +40,68 @@ export default function TipLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-12"
+      style={{ background: 'var(--tip-bg-deep)' }}
+    >
+      <div className="w-full max-w-md animate-slide-up">
         {/* Logo/Brand */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">AirTip</h1>
-          <p className="text-gray-600 mt-2">Tip management made simple</p>
+        <div className="text-center mb-10">
+          <div
+            className="inline-block mb-6 rounded-2xl"
+            style={{ boxShadow: '0 0 60px var(--tip-accent-glow)' }}
+          >
+            <AirTipIcon size={80} />
+          </div>
+          <h1
+            className="text-3xl font-bold tracking-tight"
+            style={{ color: 'var(--tip-text-primary)' }}
+          >
+            AirTip
+          </h1>
+          <p
+            className="mt-2 font-mono text-sm"
+            style={{ color: 'var(--tip-text-muted)' }}
+          >
+            tip management made simple
+          </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in</h2>
+        <div
+          className="rounded-2xl p-8"
+          style={{
+            background: 'var(--tip-bg-elevated)',
+            border: '1px solid var(--tip-border)'
+          }}
+        >
+          <h2
+            className="text-xl font-semibold mb-6"
+            style={{ color: 'var(--tip-text-primary)' }}
+          >
+            Sign in
+          </h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div
+              className="mb-6 p-4 rounded-lg text-sm font-medium"
+              style={{
+                background: 'rgba(239, 100, 97, 0.1)',
+                border: '1px solid rgba(239, 100, 97, 0.3)',
+                color: 'var(--tip-error)'
+              }}
+            >
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--tip-text-secondary)' }}
+              >
                 Email
               </label>
               <input
@@ -68,13 +110,17 @@ export default function TipLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                className="tip-input w-full px-4 py-3"
                 placeholder="you@restaurant.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--tip-text-secondary)' }}
+              >
                 Password
               </label>
               <input
@@ -83,7 +129,7 @@ export default function TipLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                className="tip-input w-full px-4 py-3"
                 placeholder="Enter your password"
               />
             </div>
@@ -91,17 +137,53 @@ export default function TipLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors"
+              className="tip-btn-primary w-full py-3 px-4 rounded-xl text-base disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span
+                    className="w-4 h-4 border-2 rounded-full animate-spin"
+                    style={{
+                      borderColor: 'var(--tip-bg-deep)',
+                      borderTopColor: 'transparent'
+                    }}
+                  />
+                  Signing in...
+                </span>
+              ) : (
+                "Sign in"
+              )}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
-            Don&apos;t have an account?{" "}
-            <Link href="/tips/register" className="text-blue-600 hover:text-blue-700 font-medium">
-              Get started
-            </Link>
+          <div className="mt-8 pt-6" style={{ borderTop: '1px dashed var(--tip-border)' }}>
+            <p
+              className="text-center text-sm"
+              style={{ color: 'var(--tip-text-muted)' }}
+            >
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/tips/register"
+                className="font-medium transition-colors"
+                style={{ color: 'var(--tip-accent)' }}
+              >
+                Get started
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Receipt tape decoration */}
+        <div className="mt-8 flex justify-center">
+          <div
+            className="font-mono text-xs text-center px-4 py-2"
+            style={{
+              color: 'var(--tip-text-muted)',
+              borderTop: '1px dashed var(--tip-border)',
+              borderBottom: '1px dashed var(--tip-border)',
+            }}
+          >
+            THANK YOU FOR USING AIRTIP
           </div>
         </div>
       </div>

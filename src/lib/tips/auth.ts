@@ -20,10 +20,23 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  if (!hash || !hash.includes(":")) {
+    return false;
+  }
   const [salt, key] = hash.split(":");
-  const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;
-  const keyBuffer = Buffer.from(key, "hex");
-  return timingSafeEqual(derivedKey, keyBuffer);
+  if (!salt || !key) {
+    return false;
+  }
+  try {
+    const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;
+    const keyBuffer = Buffer.from(key, "hex");
+    if (derivedKey.length !== keyBuffer.length) {
+      return false;
+    }
+    return timingSafeEqual(derivedKey, keyBuffer);
+  } catch {
+    return false;
+  }
 }
 
 // Session management
@@ -71,50 +84,48 @@ export interface TipAuthContext {
   locationIds: string[];
 }
 
+// Demo mode flag - controlled via environment variable
+// Set AIRTIP_DEMO_MODE=true only for local development
+const DEMO_MODE = process.env.AIRTIP_DEMO_MODE === "true";
+
 export async function getTipAuthContext(): Promise<TipAuthContext | null> {
   const token = await getSessionToken();
-  if (!token) return null;
 
-  const session = await prisma.tipSession.findUnique({
-    where: { token },
-    include: {
-      user: {
-        include: {
-          organization: {
-            include: {
-              locations: {
-                select: { id: true },
+  // Try session-based auth first if we have a token
+  if (token) {
+    const session = await prisma.tipSession.findUnique({
+      where: { token },
+      include: {
+        user: {
+          include: {
+            organization: {
+              include: {
+                locations: {
+                  select: { id: true },
+                },
               },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  if (!session || session.expiresAt < new Date()) {
+    if (session && session.expiresAt >= new Date()) {
+      return {
+        user: session.user,
+        organization: session.user.organization,
+        locationIds: session.user.organization.locations.map((l) => l.id),
+      };
+    }
+
+    // Clean up expired session
     if (session) {
       await prisma.tipSession.delete({ where: { id: session.id } });
     }
-    return null;
   }
 
-  return {
-    user: session.user,
-    organization: session.user.organization,
-    locationIds: session.user.organization.locations.map((l) => l.id),
-  };
-}
-
-// Demo mode flag - set to true to skip auth checks
-const DEMO_MODE = true;
-
-// Require auth helper for API routes
-export async function requireTipAuth(): Promise<TipAuthContext> {
-  let ctx = await getTipAuthContext();
-
-  // In demo mode, auto-auth as demo admin
-  if (!ctx && DEMO_MODE) {
+  // In demo mode, always auto-auth as demo admin (fallback for no/expired session)
+  if (DEMO_MODE) {
     const demoUser = await prisma.tipUser.findUnique({
       where: { email: "admin@demo.com" },
       include: {
@@ -126,7 +137,7 @@ export async function requireTipAuth(): Promise<TipAuthContext> {
       },
     });
     if (demoUser) {
-      ctx = {
+      return {
         user: demoUser,
         organization: demoUser.organization,
         locationIds: demoUser.organization.locations.map((l) => l.id),
@@ -134,6 +145,12 @@ export async function requireTipAuth(): Promise<TipAuthContext> {
     }
   }
 
+  return null;
+}
+
+// Require auth helper for API routes
+export async function requireTipAuth(): Promise<TipAuthContext> {
+  const ctx = await getTipAuthContext();
   if (!ctx) {
     throw new Error("Unauthorized");
   }

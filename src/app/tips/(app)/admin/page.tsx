@@ -1,17 +1,18 @@
 // app/tips/(app)/admin/page.tsx
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { TipSettings } from "./tip-settings";
-
-// Demo mode - skip auth check
-const DEMO_MODE = true;
+import { getTipAuthContext } from "@/lib/tips/auth";
 
 export default async function AdminPage() {
-  // Demo context
-  const ctx = {
-    organization: {
-      id: "demo-org",
-      name: "Demo Restaurant Group",
-    },
+  const authContext = await getTipAuthContext();
+  if (!authContext) {
+    redirect("/tips/login");
+  }
+
+  const organization = {
+    id: authContext.organization.id,
+    name: authContext.organization.name,
   };
 
   const settingsLinks = [
@@ -19,21 +20,28 @@ export default async function AdminPage() {
       href: "/tips/admin/locations",
       title: "Locations",
       description: "Manage restaurant locations",
-      icon: "🏪",
+      icon: "loc",
     },
     {
       href: "/tips/admin/staff",
       title: "Staff",
       description: "Manage staff members and roles",
-      icon: "👥",
+      icon: "staff",
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-1">Manage your organization</p>
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: 'var(--tip-text-primary)' }}
+        >
+          Settings
+        </h1>
+        <p className="mt-1" style={{ color: 'var(--tip-text-muted)' }}>
+          Manage your organization
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -41,11 +49,33 @@ export default async function AdminPage() {
           <Link
             key={link.href}
             href={link.href}
-            className="bg-white rounded-xl border border-gray-200 p-6 hover:border-blue-300 hover:shadow-sm transition-all"
+            className="rounded-xl p-6 transition-all duration-200"
+            style={{
+              background: 'var(--tip-bg-elevated)',
+              border: '1px solid var(--tip-border)',
+            }}
           >
-            <div className="text-3xl mb-3">{link.icon}</div>
-            <h2 className="text-lg font-semibold text-gray-900">{link.title}</h2>
-            <p className="text-gray-600 text-sm mt-1">{link.description}</p>
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 font-mono"
+              style={{
+                background: 'var(--tip-bg-surface)',
+                color: 'var(--tip-text-muted)',
+              }}
+            >
+              {link.icon === "loc" ? "[]" : "{}"}
+            </div>
+            <h2
+              className="text-lg font-semibold"
+              style={{ color: 'var(--tip-text-primary)' }}
+            >
+              {link.title}
+            </h2>
+            <p
+              className="text-sm mt-1"
+              style={{ color: 'var(--tip-text-muted)' }}
+            >
+              {link.description}
+            </p>
           </Link>
         ))}
       </div>
@@ -54,16 +84,34 @@ export default async function AdminPage() {
       <TipSettings />
 
       {/* Organization info */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Organization</h2>
+      <div
+        className="rounded-xl p-6"
+        style={{
+          background: 'var(--tip-bg-elevated)',
+          border: '1px solid var(--tip-border)',
+        }}
+      >
+        <h2
+          className="text-lg font-semibold mb-4"
+          style={{ color: 'var(--tip-text-primary)' }}
+        >
+          Organization
+        </h2>
         <div className="space-y-3">
           <div>
-            <div className="text-sm text-gray-500">Name</div>
-            <div className="font-medium text-gray-900">{ctx.organization.name}</div>
+            <div className="text-sm" style={{ color: 'var(--tip-text-muted)' }}>Name</div>
+            <div className="font-medium" style={{ color: 'var(--tip-text-primary)' }}>
+              {organization.name}
+            </div>
           </div>
           <div>
-            <div className="text-sm text-gray-500">Organization ID</div>
-            <div className="font-mono text-sm text-gray-600">{ctx.organization.id}</div>
+            <div className="text-sm" style={{ color: 'var(--tip-text-muted)' }}>Organization ID</div>
+            <div
+              className="font-mono text-sm"
+              style={{ color: 'var(--tip-text-secondary)' }}
+            >
+              {organization.id}
+            </div>
           </div>
         </div>
       </div>

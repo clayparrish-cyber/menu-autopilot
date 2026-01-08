@@ -33,13 +33,26 @@ export function TipSettings() {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Tip Settings</h2>
+    <div
+      className="rounded-xl p-6"
+      style={{
+        background: 'var(--tip-bg-elevated)',
+        border: '1px solid var(--tip-border)',
+      }}
+    >
+      <h2
+        className="text-lg font-semibold mb-4"
+        style={{ color: 'var(--tip-text-primary)' }}
+      >
+        Tip Settings
+      </h2>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="font-medium text-gray-900">Cash Tips</div>
-            <div className="text-sm text-gray-500">
+            <div className="font-medium" style={{ color: 'var(--tip-text-primary)' }}>
+              Cash Tips
+            </div>
+            <div className="text-sm" style={{ color: 'var(--tip-text-muted)' }}>
               Enable if your team collects cash tips in addition to credit card tips
             </div>
           </div>
@@ -47,24 +60,38 @@ export function TipSettings() {
             type="button"
             onClick={handleToggleCash}
             disabled={saving}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-              settings.usesCashTips ? "bg-blue-600" : "bg-gray-200"
-            } ${saving ? "opacity-50" : ""}`}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+              saving ? "opacity-50" : ""
+            }`}
+            style={{
+              background: settings.usesCashTips ? 'var(--tip-accent)' : 'var(--tip-bg-surface)',
+            }}
             role="switch"
             aria-checked={settings.usesCashTips}
           >
             <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                settings.usesCashTips ? "translate-x-5" : "translate-x-0"
-              }`}
+              className="pointer-events-none inline-block h-5 w-5 transform rounded-full shadow ring-0 transition duration-200 ease-in-out"
+              style={{
+                background: settings.usesCashTips ? 'var(--tip-bg-deep)' : 'var(--tip-text-muted)',
+                transform: settings.usesCashTips ? 'translateX(20px)' : 'translateX(0)',
+              }}
             />
           </button>
         </div>
         {saved && (
-          <div className="text-sm text-green-600">Settings saved!</div>
+          <div className="text-sm" style={{ color: 'var(--tip-success)' }}>
+            Settings saved!
+          </div>
         )}
         {!settings.usesCashTips && (
-          <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+          <div
+            className="p-3 rounded-lg text-sm"
+            style={{
+              background: 'rgba(94, 177, 239, 0.1)',
+              border: '1px solid rgba(94, 177, 239, 0.2)',
+              color: 'var(--tip-info)',
+            }}
+          >
             Cash tip fields will be hidden throughout the app. You can enable this anytime if needed.
           </div>
         )}

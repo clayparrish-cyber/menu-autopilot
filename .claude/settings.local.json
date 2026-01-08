@@ -49,7 +49,15 @@
       "WebFetch(domain:www.marginedge.com)",
       "Bash(docker ps:*)",
       "Bash(source:*)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Skill(ralph-wiggum:ralph-loop)",
+      "Bash(\"/Users/clayparrish/.claude/plugins/cache/claude-plugins-official/ralph-wiggum/883f2ba69e50/scripts/setup-ralph-loop.sh\" \"review the code for the airtip tool and make sure the code is rock solid with no unnecessary complexity or failure prone code. consider and solve for edge cases.\" --completion-promise \"DONE\" --max-iterations 5)",
+      "Skill(frontend-design:frontend-design)",
+      "Skill(superpowers:brainstorming)",
+      "Bash(/opt/homebrew/opt/postgresql@15/bin/pg_isready:*)",
+      "Bash(mdfind:*)",
+      "Bash(npm run build:*)",
+      "Bash(xargs kill:*)"
     ]
   }
 }

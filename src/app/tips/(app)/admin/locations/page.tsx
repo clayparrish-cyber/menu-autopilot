@@ -70,26 +70,31 @@ export default function LocationsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading...</div>
+        <div style={{ color: 'var(--tip-text-muted)' }}>Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <Link href="/tips/admin" className="hover:text-gray-700">Settings</Link>
+          <div className="flex items-center gap-2 text-sm mb-1" style={{ color: 'var(--tip-text-muted)' }}>
+            <Link href="/tips/admin" style={{ color: 'var(--tip-text-secondary)' }}>Settings</Link>
             <span>/</span>
             <span>Locations</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Locations</h1>
+          <h1
+            className="text-2xl font-bold tracking-tight"
+            style={{ color: 'var(--tip-text-primary)' }}
+          >
+            Locations
+          </h1>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          className="tip-btn-primary px-4 py-2 rounded-lg font-medium"
         >
           + Add Location
         </button>
@@ -97,16 +102,37 @@ export default function LocationsPage() {
 
       {/* Add form */}
       {showAddForm && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Location</h2>
+        <div
+          className="rounded-xl p-6"
+          style={{
+            background: 'var(--tip-bg-elevated)',
+            border: '1px solid var(--tip-border)',
+          }}
+        >
+          <h2
+            className="text-lg font-semibold mb-4"
+            style={{ color: 'var(--tip-text-primary)' }}
+          >
+            Add Location
+          </h2>
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div
+              className="mb-4 p-3 rounded-lg text-sm"
+              style={{
+                background: 'rgba(239, 100, 97, 0.1)',
+                border: '1px solid rgba(239, 100, 97, 0.3)',
+                color: 'var(--tip-error)',
+              }}
+            >
               {error}
             </div>
           )}
           <form onSubmit={handleAdd} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                className="block text-sm font-medium mb-1"
+                style={{ color: 'var(--tip-text-secondary)' }}
+              >
                 Location Name *
               </label>
               <input
@@ -115,11 +141,14 @@ export default function LocationsPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 placeholder="e.g., Downtown Location"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="tip-input w-full px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                className="block text-sm font-medium mb-1"
+                style={{ color: 'var(--tip-text-secondary)' }}
+              >
                 Address
               </label>
               <input
@@ -127,14 +156,14 @@ export default function LocationsPage() {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="123 Main St, City, State"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="tip-input w-full px-3 py-2"
               />
             </div>
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors"
+                className="tip-btn-primary px-4 py-2 rounded-lg font-medium disabled:opacity-50"
               >
                 {saving ? "Adding..." : "Add Location"}
               </button>
@@ -144,7 +173,7 @@ export default function LocationsPage() {
                   setShowAddForm(false);
                   setError("");
                 }}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
+                className="tip-btn-secondary px-4 py-2 rounded-lg font-medium"
               >
                 Cancel
               </button>
@@ -155,14 +184,27 @@ export default function LocationsPage() {
 
       {/* Locations list */}
       {locations.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <div className="text-4xl mb-3">🏪</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">No locations yet</h2>
-          <p className="text-gray-600 mb-4">Add your first location to get started</p>
+        <div
+          className="rounded-xl p-8 text-center"
+          style={{
+            background: 'var(--tip-bg-elevated)',
+            border: '1px solid var(--tip-border)',
+          }}
+        >
+          <div className="text-4xl mb-3">[]</div>
+          <h2
+            className="text-lg font-semibold mb-1"
+            style={{ color: 'var(--tip-text-primary)' }}
+          >
+            No locations yet
+          </h2>
+          <p className="mb-4" style={{ color: 'var(--tip-text-muted)' }}>
+            Add your first location to get started
+          </p>
           {!showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              className="tip-btn-primary px-4 py-2 rounded-lg font-medium"
             >
               + Add Location
             </button>
@@ -173,34 +215,49 @@ export default function LocationsPage() {
           {locations.map((location) => (
             <div
               key={location.id}
-              className="bg-white rounded-xl border border-gray-200 p-6"
+              className="rounded-xl p-6"
+              style={{
+                background: 'var(--tip-bg-elevated)',
+                border: '1px solid var(--tip-border)',
+              }}
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{location.name}</h2>
+                  <h2
+                    className="text-lg font-semibold"
+                    style={{ color: 'var(--tip-text-primary)' }}
+                  >
+                    {location.name}
+                  </h2>
                   {location.address && (
-                    <p className="text-gray-600 text-sm mt-1">{location.address}</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--tip-text-muted)' }}>
+                      {location.address}
+                    </p>
                   )}
                 </div>
                 <Link
                   href={`/tips/admin/staff?locationId=${location.id}`}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-sm font-medium"
+                  style={{ color: 'var(--tip-accent)' }}
                 >
                   Manage Staff
                 </Link>
               </div>
-              <div className="flex gap-6 mt-4 text-sm">
+              <div
+                className="flex gap-6 mt-4 text-sm font-mono"
+                style={{ color: 'var(--tip-text-secondary)' }}
+              >
                 <div>
-                  <span className="text-gray-500">Staff:</span>{" "}
-                  <span className="font-medium">{location.staff.length}</span>
+                  <span style={{ color: 'var(--tip-text-muted)' }}>Staff:</span>{" "}
+                  <span>{location.staff.length}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Shifts:</span>{" "}
-                  <span className="font-medium">{location._count.shifts}</span>
+                  <span style={{ color: 'var(--tip-text-muted)' }}>Shifts:</span>{" "}
+                  <span>{location._count.shifts}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Timezone:</span>{" "}
-                  <span className="font-medium">{location.timezone}</span>
+                  <span style={{ color: 'var(--tip-text-muted)' }}>TZ:</span>{" "}
+                  <span>{location.timezone}</span>
                 </div>
               </div>
             </div>
